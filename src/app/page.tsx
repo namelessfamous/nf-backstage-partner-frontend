@@ -1,65 +1,122 @@
-import Image from "next/image";
+import { getServerSession } from "next-auth";
+import { AuthControls } from "@/components/auth-controls";
+import { authOptions } from "@/lib/auth";
+import { getPartnerContext } from "@/lib/partner-context";
 
-export default function Home() {
+export default async function Home() {
+  const [session, { hostname, partner }] = await Promise.all([
+    getServerSession(authOptions),
+    getPartnerContext(),
+  ]);
+
+  const authConfigured = Boolean(
+    process.env.AUTH_NFID_CLIENT_ID && process.env.AUTH_NFID_CLIENT_SECRET,
+  );
+  const apiBaseUrl =
+    partner.apiBaseUrl ?? process.env.NEXT_PUBLIC_BACKSTAGE_API_URL ?? "https://a.namfam.co";
+
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
-        </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
+    <main className="flex flex-1 items-center justify-center px-6 py-12">
+      <div className="grid w-full max-w-6xl gap-6 lg:grid-cols-[1.25fr_0.75fr]">
+        <section className="rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-8 shadow-[0_24px_80px_rgba(15,23,42,0.08)] sm:p-10">
+          <div className="mb-10 flex flex-wrap items-start justify-between gap-6">
+            <div className="max-w-2xl space-y-4">
+              <p className="text-sm font-semibold uppercase tracking-[0.24em] text-[var(--brand-primary)]">
+                {partner.displayName}
+              </p>
+              <h1 className="text-4xl font-semibold tracking-tight text-[var(--brand-foreground)] sm:text-5xl">
+                Partner access to backstage data, tailored by hostname.
+              </h1>
+              <p className="max-w-xl text-lg leading-8 text-[var(--brand-muted)]">
+                This starter portal authenticates against nf-id, targets nf-backstage, and
+                applies partner branding from the incoming domain.
+              </p>
+            </div>
+            <AuthControls
+              authConfigured={authConfigured}
+              isAuthenticated={Boolean(session)}
+              partnerName={partner.displayName}
             />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Documentation
-          </a>
-        </div>
-      </main>
-    </div>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-3">
+            <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
+              <p className="text-sm font-medium text-[var(--brand-muted)]">Authentication</p>
+              <p className="mt-3 text-2xl font-semibold text-[var(--brand-foreground)]">
+                {authConfigured ? "Configured" : "Needs credentials"}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[var(--brand-muted)]">
+                OIDC issuer defaults to <span className="font-medium">{process.env.AUTH_NFID_ISSUER ?? "https://id.namfam.co"}</span>.
+              </p>
+            </article>
+            <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
+              <p className="text-sm font-medium text-[var(--brand-muted)]">Backstage API</p>
+              <p className="mt-3 text-2xl font-semibold text-[var(--brand-foreground)]">
+                {apiBaseUrl.replace(/^https?:\/\//, "")}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[var(--brand-muted)]">
+                Ready for server actions, route handlers, and authenticated data fetching.
+              </p>
+            </article>
+            <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
+              <p className="text-sm font-medium text-[var(--brand-muted)]">Resolved host</p>
+              <p className="mt-3 text-2xl font-semibold text-[var(--brand-foreground)]">
+                {hostname}
+              </p>
+              <p className="mt-3 text-sm leading-6 text-[var(--brand-muted)]">
+                Hostnames map to partner themes in a single config module.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <aside className="space-y-6">
+          <section className="rounded-[2rem] bg-[linear-gradient(135deg,var(--brand-primary),var(--brand-secondary))] p-8 text-white shadow-[0_24px_80px_rgba(15,23,42,0.14)]">
+            <p className="text-sm font-semibold uppercase tracking-[0.24em] text-white/75">
+              White label
+            </p>
+            <h2 className="mt-4 text-3xl font-semibold">{partner.displayName}</h2>
+            <p className="mt-4 text-base leading-7 text-white/85">{partner.description}</p>
+            <div className="mt-8 rounded-3xl bg-white/12 p-5 backdrop-blur-sm">
+              <p className="text-sm text-white/70">Support contact</p>
+              <p className="mt-2 text-lg font-medium">{partner.supportEmail}</p>
+            </div>
+          </section>
+
+          <section className="rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-8">
+            <h2 className="text-xl font-semibold text-[var(--brand-foreground)]">
+              Session snapshot
+            </h2>
+            {session ? (
+              <dl className="mt-6 space-y-4 text-sm">
+                <div>
+                  <dt className="font-medium text-[var(--brand-muted)]">User</dt>
+                  <dd className="mt-1 text-base text-[var(--brand-foreground)]">
+                    {session.user?.name ?? session.user?.email ?? "Authenticated user"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-[var(--brand-muted)]">Email</dt>
+                  <dd className="mt-1 text-base text-[var(--brand-foreground)]">
+                    {session.user?.email ?? "Not provided"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-medium text-[var(--brand-muted)]">Access token</dt>
+                  <dd className="mt-1 break-all text-xs text-[var(--brand-foreground)]">
+                    {session.accessToken ? "Stored in the server session payload" : "Not available"}
+                  </dd>
+                </div>
+              </dl>
+            ) : (
+              <p className="mt-6 text-base leading-7 text-[var(--brand-muted)]">
+                Sign in to verify the nf-id integration and begin wiring partner-specific data
+                views against nf-backstage.
+              </p>
+            )}
+          </section>
+        </aside>
+      </div>
+    </main>
   );
 }

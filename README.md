@@ -1,36 +1,46 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# nf-backstage-partner-frontend
 
-## Getting Started
+Next.js partner portal scaffold for consuming and updating `nf-backstage` data with authentication delegated to `nf-id`.
 
-First, run the development server:
+## What is included
+
+- App Router Next.js scaffold
+- `next-auth` integration configured for `nf-id` as an OpenID Connect provider
+- Hostname-driven white-label partner resolution
+- Theme tokens applied per partner at request time
+- Starter landing/dashboard experience for authenticated and unauthenticated users
+
+## Environment variables
+
+Copy `.env.example` to `.env.local` and fill in:
+
+- `NEXTAUTH_URL`: public app origin
+- `NEXTAUTH_SECRET`: random secret used by `next-auth`
+- `AUTH_NFID_ISSUER`: OIDC issuer for `nf-id`
+- `AUTH_NFID_CLIENT_ID`: OIDC client ID
+- `AUTH_NFID_CLIENT_SECRET`: OIDC client secret
+- `AUTH_NFID_SCOPE`: requested scopes
+- `NEXT_PUBLIC_BACKSTAGE_API_URL`: base URL for `nf-backstage`
+
+## Local development
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open `http://localhost:3000`. To test white-label behavior locally, send a custom `Host` header through a proxy or add a local hostname that maps to `127.0.0.1`, then add that hostname in `/home/runner/work/nf-backstage-partner-frontend/nf-backstage-partner-frontend/src/lib/partners.ts`.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Partner configuration
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+Partner-specific branding is defined in `/home/runner/work/nf-backstage-partner-frontend/nf-backstage-partner-frontend/src/lib/partners.ts`.
 
-## Learn More
+Each partner can define:
 
-To learn more about Next.js, take a look at the following resources:
+- hostnames
+- display name
+- support email
+- API base URL
+- theme colors
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+The scaffold includes a default configuration plus a sample `gritcreative.namfam.co` white-label mapping.
