@@ -32,11 +32,13 @@ export default async function Home() {
                 applies partner branding from the incoming domain.
               </p>
             </div>
-            <AuthControls
-              authConfigured={authConfigured}
-              isAuthenticated={Boolean(session)}
-              partnerName={partner.displayName}
-            />
+            {authConfigured ? (
+              <AuthControls isAuthenticated={Boolean(session)} />
+            ) : (
+              <div className="rounded-3xl border border-dashed border-[var(--brand-primary)]/40 bg-[var(--brand-surface-strong)] px-5 py-4 text-sm text-[var(--brand-muted)]">
+                Add nf-id client credentials to enable sign-in for {partner.displayName}.
+              </div>
+            )}
           </div>
 
           <div className="grid gap-4 md:grid-cols-3">

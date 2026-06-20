@@ -74,8 +74,10 @@ export function resolvePartnerByHostname(hostname: string) {
   }
 
   if (normalized.endsWith(".namfam.co")) {
-    const [subdomain] = normalized.split(".");
-    const partnerKeyMatch = partnerConfigs.find((partner) => partner.key === subdomain);
+    const subdomains = normalized.split(".").slice(0, -2).reverse();
+    const partnerKeyMatch = subdomains
+      .map((subdomain) => partnerConfigs.find((partner) => partner.key === subdomain))
+      .find(Boolean);
 
     if (partnerKeyMatch) {
       return partnerKeyMatch;

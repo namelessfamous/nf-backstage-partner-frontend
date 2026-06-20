@@ -3,24 +3,10 @@
 import { signIn, signOut } from "next-auth/react";
 
 type AuthControlsProps = {
-  authConfigured: boolean;
   isAuthenticated: boolean;
-  partnerName: string;
 };
 
-export function AuthControls({
-  authConfigured,
-  isAuthenticated,
-  partnerName,
-}: AuthControlsProps) {
-  if (!authConfigured) {
-    return (
-      <div className="rounded-3xl border border-dashed border-[var(--brand-primary)]/40 bg-[var(--brand-surface-strong)] px-5 py-4 text-sm text-[var(--brand-muted)]">
-        Add nf-id client credentials to enable sign-in for {partnerName}.
-      </div>
-    );
-  }
-
+export function AuthControls({ isAuthenticated }: AuthControlsProps) {
   if (isAuthenticated) {
     return (
       <button
