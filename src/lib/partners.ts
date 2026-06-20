@@ -1,3 +1,5 @@
+import { DEFAULT_BACKSTAGE_API_URL } from "@/lib/runtime-config";
+
 export type PartnerConfig = {
   key: string;
   displayName: string;
@@ -16,9 +18,6 @@ export type PartnerConfig = {
   };
 };
 
-const defaultApiBaseUrl =
-  process.env.NEXT_PUBLIC_BACKSTAGE_API_URL ?? "https://a.namfam.co";
-
 export const partnerConfigs: PartnerConfig[] = [
   {
     key: "default",
@@ -27,7 +26,7 @@ export const partnerConfigs: PartnerConfig[] = [
       "Default partner experience for backstage operators and partner onboarding.",
     supportEmail: "support@namfam.co",
     hosts: ["localhost", "127.0.0.1", "partner.namfam.co"],
-    apiBaseUrl: defaultApiBaseUrl,
+    apiBaseUrl: DEFAULT_BACKSTAGE_API_URL,
     theme: {
       primary: "#2563eb",
       secondary: "#172554",
@@ -45,7 +44,7 @@ export const partnerConfigs: PartnerConfig[] = [
       "White-labeled view for Grit Creative teams managing backstage partner data.",
     supportEmail: "hello@gritcreative.co",
     hosts: ["gritcreative.namfam.co"],
-    apiBaseUrl: defaultApiBaseUrl,
+    apiBaseUrl: DEFAULT_BACKSTAGE_API_URL,
     theme: {
       primary: "#ca8a04",
       secondary: "#422006",

@@ -2,6 +2,7 @@ import { getServerSession } from "next-auth";
 import { AuthControls } from "@/components/auth-controls";
 import { authOptions } from "@/lib/auth";
 import { getPartnerContext } from "@/lib/partner-context";
+import { DEFAULT_BACKSTAGE_API_URL, NF_ID_ISSUER } from "@/lib/runtime-config";
 
 export default async function Home() {
   const [session, { hostname, partner }] = await Promise.all([
@@ -12,8 +13,7 @@ export default async function Home() {
   const authConfigured = Boolean(
     process.env.AUTH_NFID_CLIENT_ID && process.env.AUTH_NFID_CLIENT_SECRET,
   );
-  const apiBaseUrl =
-    partner.apiBaseUrl ?? process.env.NEXT_PUBLIC_BACKSTAGE_API_URL ?? "https://a.namfam.co";
+  const apiBaseUrl = partner.apiBaseUrl ?? DEFAULT_BACKSTAGE_API_URL;
 
   return (
     <main className="flex flex-1 items-center justify-center px-6 py-12">
@@ -46,7 +46,7 @@ export default async function Home() {
                 {authConfigured ? "Configured" : "Needs credentials"}
               </p>
               <p className="mt-3 text-sm leading-6 text-[var(--brand-muted)]">
-                OIDC issuer defaults to <span className="font-medium">{process.env.AUTH_NFID_ISSUER ?? "https://id.namfam.co"}</span>.
+                OIDC issuer defaults to <span className="font-medium">{NF_ID_ISSUER}</span>.
               </p>
             </article>
             <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">

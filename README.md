@@ -29,11 +29,11 @@ npm install
 npm run dev
 ```
 
-Open `http://localhost:3000`. To test white-label behavior locally, send a custom `Host` header through a proxy or add a local hostname that maps to `127.0.0.1`, then add that hostname in `/home/runner/work/nf-backstage-partner-frontend/nf-backstage-partner-frontend/src/lib/partners.ts`.
+Open `http://localhost:3000`. To test white-label behavior locally, send a custom `Host` header through a proxy or add a local hostname that maps to `127.0.0.1`, then add that hostname in `src/lib/partners.ts`.
 
 ## Partner configuration
 
-Partner-specific branding is defined in `/home/runner/work/nf-backstage-partner-frontend/nf-backstage-partner-frontend/src/lib/partners.ts`.
+Partner-specific branding is defined in `src/lib/partners.ts`.
 
 Each partner can define:
 

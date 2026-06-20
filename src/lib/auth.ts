@@ -1,7 +1,5 @@
 import type { NextAuthOptions } from "next-auth";
-
-const issuer = (process.env.AUTH_NFID_ISSUER ?? "https://id.namfam.co").replace(/\/$/, "");
-const scope = process.env.AUTH_NFID_SCOPE ?? "openid profile email offline_access";
+import { NF_ID_ISSUER, NF_ID_SCOPE } from "@/lib/runtime-config";
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
@@ -16,12 +14,12 @@ export const authOptions: NextAuthOptions = {
       id: "nf-id",
       name: "Nameless Famous ID",
       type: "oauth",
-      wellKnown: `${issuer}/.well-known/openid-configuration`,
+      wellKnown: `${NF_ID_ISSUER}/.well-known/openid-configuration`,
       clientId: process.env.AUTH_NFID_CLIENT_ID ?? "",
       clientSecret: process.env.AUTH_NFID_CLIENT_SECRET ?? "",
       authorization: {
         params: {
-          scope,
+          scope: NF_ID_SCOPE,
         },
       },
       checks: ["pkce", "state"],
