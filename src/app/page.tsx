@@ -35,7 +35,8 @@ export default async function Home() {
               <AuthControls isAuthenticated={Boolean(session)} />
             ) : (
               <div className="rounded-3xl border border-dashed border-[var(--brand-primary)]/40 bg-[var(--brand-surface-strong)] px-5 py-4 text-sm text-[var(--brand-muted)]">
-                Add nf-id client credentials to enable sign-in for {partner.displayName}.
+                Add nf-id client credentials in <span className="font-medium">.env.local</span>{" "}
+                to enable sign-in for {partner.displayName}.
               </div>
             )}
           </div>
