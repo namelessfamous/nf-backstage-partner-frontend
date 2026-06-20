@@ -104,7 +104,7 @@ export default async function Home() {
                 <div>
                   <dt className="font-medium text-[var(--brand-muted)]">Access token</dt>
                   <dd className="mt-1 break-all text-xs text-[var(--brand-foreground)]">
-                    {session.accessToken ? "Stored in the server session payload" : "Not available"}
+                    {session.accessToken ? "Available for API requests" : "Not available"}
                   </dd>
                 </div>
               </dl>

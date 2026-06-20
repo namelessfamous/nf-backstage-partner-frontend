@@ -18,25 +18,27 @@ export type PartnerConfig = {
   };
 };
 
-export const partnerConfigs: PartnerConfig[] = [
-  {
-    key: "default",
-    displayName: "Nameless Famous",
-    description:
-      "Default partner experience for backstage operators and partner onboarding.",
-    supportEmail: "support@namfam.co",
-    hosts: ["localhost", "127.0.0.1", "partner.namfam.co"],
-    apiBaseUrl: DEFAULT_BACKSTAGE_API_URL,
-    theme: {
-      primary: "#2563eb",
-      secondary: "#172554",
-      accent: "#7dd3fc",
-      surface: "#ffffff",
-      surfaceStrong: "#dbeafe",
-      foreground: "#0f172a",
-      muted: "#526077",
-    },
+export const defaultPartnerConfig: PartnerConfig = {
+  key: "default",
+  displayName: "Nameless Famous",
+  description:
+    "Default partner experience for backstage operators and partner onboarding.",
+  supportEmail: "support@namfam.co",
+  hosts: ["localhost", "127.0.0.1", "partner.namfam.co"],
+  apiBaseUrl: DEFAULT_BACKSTAGE_API_URL,
+  theme: {
+    primary: "#2563eb",
+    secondary: "#172554",
+    accent: "#7dd3fc",
+    surface: "#ffffff",
+    surfaceStrong: "#dbeafe",
+    foreground: "#0f172a",
+    muted: "#526077",
   },
+};
+
+export const partnerConfigs: PartnerConfig[] = [
+  defaultPartnerConfig,
   {
     key: "gritcreative",
     displayName: "Grit Creative",
@@ -80,5 +82,5 @@ export function resolvePartnerByHostname(hostname: string) {
     }
   }
 
-  return partnerConfigs[0];
+  return defaultPartnerConfig;
 }
