@@ -1,5 +1,6 @@
 import { getServerSession } from "next-auth";
 import { AuthControls } from "@/components/auth-controls";
+import { isAuthConfigured } from "@/lib/auth-config";
 import { authOptions } from "@/lib/auth";
 import { getPartnerContext } from "@/lib/partner-context";
 import { DEFAULT_BACKSTAGE_API_URL, NF_ID_ISSUER } from "@/lib/runtime-config";
@@ -10,9 +11,7 @@ export default async function Home() {
     getPartnerContext(),
   ]);
 
-  const authConfigured = Boolean(
-    process.env.AUTH_NFID_CLIENT_ID && process.env.AUTH_NFID_CLIENT_SECRET,
-  );
+  const authConfigured = isAuthConfigured();
   const apiBaseUrl = partner.apiBaseUrl ?? DEFAULT_BACKSTAGE_API_URL;
 
   return (

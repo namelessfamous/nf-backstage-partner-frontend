@@ -31,9 +31,14 @@ export const authOptions: NextAuthOptions = {
           email?: string;
           picture?: string;
         };
+        const id = candidate.sub ?? candidate.email;
+
+        if (!id) {
+          throw new Error("nf-id profile response is missing both sub and email.");
+        }
 
         return {
-          id: candidate.sub ?? candidate.email ?? "nf-id-user",
+          id,
           name: candidate.name ?? candidate.email ?? "Partner user",
           email: candidate.email ?? null,
           image: candidate.picture ?? null,
