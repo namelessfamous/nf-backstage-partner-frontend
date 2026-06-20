@@ -27,16 +27,18 @@ export default async function Home() {
                 Partner access to backstage data, tailored by hostname.
               </h1>
               <p className="max-w-xl text-lg leading-8 text-[var(--brand-muted)]">
-                This starter portal authenticates against nf-id, targets nf-backstage, and
-                applies partner branding from the incoming domain.
+                Sign in with your nf-id to access the partner dashboard — clients,
+                projects, deliverables, and more.
               </p>
             </div>
             {authConfigured ? (
               <AuthControls isAuthenticated={Boolean(session)} />
             ) : (
               <div className="rounded-3xl border border-dashed border-[var(--brand-primary)]/40 bg-[var(--brand-surface-strong)] px-5 py-4 text-sm text-[var(--brand-muted)]">
-                Add nf-id client credentials in <span className="font-medium">.env.local</span>{" "}
-                to enable sign-in for {partner.displayName}.
+                Add <span className="font-medium">NF_ID_SECRET</span> and{" "}
+                <span className="font-medium">NEXTAUTH_SECRET</span> in{" "}
+                <span className="font-medium">.env.local</span> to enable sign-in for{" "}
+                {partner.displayName}.
               </div>
             )}
           </div>
@@ -45,10 +47,11 @@ export default async function Home() {
             <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
               <p className="text-sm font-medium text-[var(--brand-muted)]">Authentication</p>
               <p className="mt-3 text-2xl font-semibold text-[var(--brand-foreground)]">
-                {authConfigured ? "Configured" : "Needs credentials"}
+                {authConfigured ? "Ready" : "Needs setup"}
               </p>
               <p className="mt-3 text-sm leading-6 text-[var(--brand-muted)]">
-                OIDC issuer defaults to <span className="font-medium">{NF_ID_ISSUER}</span>.
+                SSO via <span className="font-medium">{NF_ID_ISSUER}</span>. Redirect-token
+                flow, JWT-verified.
               </p>
             </article>
             <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
@@ -57,7 +60,7 @@ export default async function Home() {
                 {apiBaseUrl.replace(/^https?:\/\//, "")}
               </p>
               <p className="mt-3 text-sm leading-6 text-[var(--brand-muted)]">
-                Ready for server actions, route handlers, and authenticated data fetching.
+                Bearer token from nf-id SSO passed automatically to all API requests.
               </p>
             </article>
             <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
@@ -66,7 +69,7 @@ export default async function Home() {
                 {hostname}
               </p>
               <p className="mt-3 text-sm leading-6 text-[var(--brand-muted)]">
-                Hostnames map to partner themes in a single config module.
+                Hostname maps to partner theme and client_id for SSO.
               </p>
             </article>
           </div>
@@ -105,15 +108,14 @@ export default async function Home() {
                 </div>
                 <div>
                   <dt className="font-medium text-[var(--brand-muted)]">Access token</dt>
-                  <dd className="mt-1 break-all text-xs text-[var(--brand-foreground)]">
-                    {session.accessToken ? "Available for API requests" : "Not available"}
+                  <dd className="mt-1 text-xs text-[var(--brand-foreground)]">
+                    {session.accessToken ? "✓ Available for API requests" : "Not available"}
                   </dd>
                 </div>
               </dl>
             ) : (
               <p className="mt-6 text-base leading-7 text-[var(--brand-muted)]">
-                Sign in to verify the nf-id integration and begin wiring partner-specific data
-                views against nf-backstage.
+                Sign in to verify the nf-id integration and access partner data.
               </p>
             )}
           </section>

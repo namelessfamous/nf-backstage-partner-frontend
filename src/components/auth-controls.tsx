@@ -1,28 +1,39 @@
 "use client";
 
-import { signIn, signOut } from "next-auth/react";
+import { signOut } from "next-auth/react";
+import { useRouter } from "next/navigation";
 
 type AuthControlsProps = {
   isAuthenticated: boolean;
 };
 
 export function AuthControls({ isAuthenticated }: AuthControlsProps) {
+  const router = useRouter();
+
   if (isAuthenticated) {
     return (
-      <button
-        className="cursor-pointer rounded-full bg-[var(--brand-secondary)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--brand-surface)]"
-        onClick={() => signOut({ callbackUrl: "/" })}
-        type="button"
-      >
-        Sign out
-      </button>
+      <div className="flex items-center gap-3">
+        <a
+          href="/dashboard"
+          className="rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+        >
+          Go to dashboard
+        </a>
+        <button
+          className="cursor-pointer rounded-full border border-[var(--brand-secondary)]/20 bg-transparent px-5 py-3 text-sm font-semibold text-[var(--brand-foreground)] transition hover:border-[var(--brand-secondary)]/40"
+          onClick={() => signOut({ callbackUrl: "/" })}
+          type="button"
+        >
+          Sign out
+        </button>
+      </div>
     );
   }
 
   return (
     <button
       className="cursor-pointer rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--brand-surface)]"
-      onClick={() => signIn("nf-id", { callbackUrl: "/" })}
+      onClick={() => router.push("/auth/signin")}
       type="button"
     >
       Sign in with nf-id

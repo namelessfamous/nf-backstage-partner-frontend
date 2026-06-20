@@ -1,7 +1,9 @@
-import { DEFAULT_BACKSTAGE_API_URL } from "@/lib/runtime-config";
+import { DEFAULT_BACKSTAGE_API_URL, NF_ID_CLIENT_ID } from "@/lib/runtime-config";
 
 export type PartnerConfig = {
   key: string;
+  /** client_id passed to nf-id SSO. Defaults to NF_ID_CLIENT_ID env var ("partner-portal"). */
+  clientId?: string;
   displayName: string;
   description: string;
   supportEmail: string;
@@ -20,6 +22,7 @@ export type PartnerConfig = {
 
 export const defaultPartnerConfig: PartnerConfig = {
   key: "default",
+  clientId: NF_ID_CLIENT_ID,
   displayName: "Nameless Famous",
   description:
     "Default partner experience for backstage operators and partner onboarding.",
@@ -41,6 +44,7 @@ export const partnerConfigs: PartnerConfig[] = [
   defaultPartnerConfig,
   {
     key: "gritcreative",
+    clientId: NF_ID_CLIENT_ID,
     displayName: "Grit Creative",
     description:
       "White-labeled view for Grit Creative teams managing backstage partner data.",

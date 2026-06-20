@@ -3,8 +3,8 @@ import type { JWT as DefaultJWT } from "next-auth/jwt";
 
 declare module "next-auth" {
   interface Session {
+    /** Backstage API access token from nf-id SSO */
     accessToken?: string;
-    idToken?: string;
     user?: DefaultSession["user"] & {
       id?: string;
     };
@@ -14,6 +14,5 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT extends DefaultJWT {
     accessToken?: string;
-    idToken?: string;
   }
 }

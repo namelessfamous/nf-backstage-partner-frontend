@@ -1,0 +1,164 @@
+"use client";
+
+import { useState, useCallback } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { signOut } from "next-auth/react";
+import type { PartnerConfig } from "@/lib/partners";
+import type { Session } from "next-auth";
+
+const NAV_ITEMS = [
+  {
+    href: "/dashboard",
+    label: "Dashboard",
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+    ),
+  },
+  {
+    href: "/dashboard/clients",
+    label: "Clients",
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />
+      </svg>
+    ),
+  },
+  {
+    href: "/dashboard/projects",
+    label: "Projects",
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+      </svg>
+    ),
+  },
+];
+
+type Props = {
+  partner: PartnerConfig;
+  user?: Session["user"];
+  children: React.ReactNode;
+};
+
+export function DashboardShell({ partner, user, children }: Props) {
+  const pathname = usePathname();
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  const sidebarContent = (
+    <div className="flex h-full flex-col">
+      {/* Partner wordmark */}
+      <div className="flex h-16 shrink-0 items-center border-b border-white/10 px-6">
+        <span className="text-lg font-semibold text-white">{partner.displayName}</span>
+      </div>
+
+      {/* Nav */}
+      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
+        {NAV_ITEMS.map((item) => {
+          const isActive =
+            item.href === "/dashboard"
+              ? pathname === "/dashboard"
+              : pathname.startsWith(item.href);
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              onClick={closeSidebar}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                isActive
+                  ? "bg-white/15 text-white"
+                  : "text-white/70 hover:bg-white/10 hover:text-white"
+              }`}
+            >
+              {item.icon}
+              {item.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {/* User footer */}
+      <div className="border-t border-white/10 p-4">
+        <div className="flex items-center gap-3">
+          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold text-white">
+            {(user?.name ?? user?.email ?? "?")[0].toUpperCase()}
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium text-white">
+              {user?.name ?? "Partner user"}
+            </p>
+            <p className="truncate text-xs text-white/60">{user?.email}</p>
+          </div>
+          <button
+            onClick={() => signOut({ callbackUrl: "/" })}
+            title="Sign out"
+            className="rounded-lg p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white"
+          >
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+            </svg>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+
+  return (
+    <div className="flex h-full">
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-20 bg-black/40 lg:hidden"
+          onClick={closeSidebar}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        className={`fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
+          sidebarOpen ? "translate-x-0" : "-translate-x-full"
+        }`}
+        style={{ background: `linear-gradient(180deg, var(--brand-primary), var(--brand-secondary))` }}
+      >
+        {sidebarContent}
+      </aside>
+
+      {/* Main content */}
+      <div className="flex min-w-0 flex-1 flex-col">
+        {/* Top header */}
+        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-black/5 bg-[var(--brand-surface)] px-6">
+          {/* Mobile hamburger */}
+          <button
+            className="rounded-lg p-1.5 text-[var(--brand-muted)] transition hover:bg-[var(--brand-surface-strong)] lg:hidden"
+            onClick={() => setSidebarOpen(true)}
+          >
+            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            </svg>
+          </button>
+
+          {/* Breadcrumb / page title area */}
+          <div className="flex-1" />
+
+          {/* Partner badge */}
+          <span className="hidden rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)] sm:inline">
+            {partner.displayName}
+          </span>
+
+          {/* User avatar */}
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-primary)] text-sm font-semibold text-white">
+            {(user?.name ?? user?.email ?? "?")[0].toUpperCase()}
+          </div>
+        </header>
+
+        {/* Page content */}
+        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
+          {children}
+        </main>
+      </div>
+    </div>
+  );
+}
