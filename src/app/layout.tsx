@@ -22,7 +22,7 @@ export default async function RootLayout({
   return (
     <html lang="en" className="h-full antialiased">
       <body
-        className="min-h-full flex flex-col"
+        className="h-full flex flex-col"
         style={
           {
             "--brand-primary": partner.theme.primary,
