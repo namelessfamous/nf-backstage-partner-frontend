@@ -1,4 +1,5 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getPartnerContext } from "@/lib/partner-context";
 import { NF_ID_ISSUER, NF_ID_CLIENT_ID } from "@/lib/runtime-config";
 import AutoSignIn from "./auto-sign-in";
@@ -27,7 +28,7 @@ export default async function SignInPage({
 
   // Show error state if SSO failed
   if (params.error) {
-    const ssoUrl = buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID);
+    const ssoUrl = await buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID);
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6">
         <div className="max-w-md rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-10 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
@@ -51,12 +52,22 @@ export default async function SignInPage({
   }
 
   // Default: redirect to nf-id SSO
-  const ssoUrl = buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID);
+  const ssoUrl = await buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID);
   redirect(ssoUrl);
 }
 
-function buildSsoUrl(clientId: string): string {
-  const appUrl = (process.env.NEXTAUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
+/**
+ * Build the nf-id SSO URL. The return URL is derived from the actual request
+ * host (this is a hostname-driven white-label app), falling back to
+ * NEXTAUTH_URL. The origin must be registered in nf-id's client allowlist.
+ */
+async function buildSsoUrl(clientId: string): Promise<string> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host");
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const appUrl = host
+    ? `${proto}://${host}`
+    : (process.env.NEXTAUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
   const callbackUrl = `${appUrl}/api/auth/sso-callback`;
   return `${NF_ID_ISSUER}/api/sso?to=${encodeURIComponent(callbackUrl)}&client_id=${encodeURIComponent(clientId)}`;
 }

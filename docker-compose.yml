@@ -19,7 +19,7 @@ services:
     env_file:
       - .env.local
     environment:
-      NEXTAUTH_URL: https://partners.namfam.local
+      NEXTAUTH_URL: https://partner.keysai.local
     ports:
       - "3002:3000"
     restart: unless-stopped
