@@ -4,16 +4,12 @@ import { useEffect, useState } from "react";
 import { signIn } from "next-auth/react";
 import { useRouter } from "next/navigation";
 
-const SIGNED_IN_MESSAGE = "nf-id:signed-in";
-
 export default function AutoSignIn({
   idToken,
   access,
-  popup = false,
 }: {
   idToken: string;
   access: string;
-  popup?: boolean;
 }) {
   const router = useRouter();
   const [error, setError] = useState<string | null>(null);
@@ -29,16 +25,7 @@ export default function AutoSignIn({
         });
         if (cancelled) return;
         if (result?.ok) {
-          if (popup && window.opener && !window.opener.closed) {
-            // Popup flow: tell the opener we're signed in, then close.
-            window.opener.postMessage(SIGNED_IN_MESSAGE, window.location.origin);
-            window.close();
-            // If the browser refuses to close the window, fall through
-            // to the dashboard after a beat.
-            window.setTimeout(() => router.replace("/dashboard"), 800);
-          } else {
-            router.replace("/dashboard");
-          }
+          router.replace("/dashboard");
         } else {
           setError("Authentication failed. Please try signing in again.");
         }
@@ -47,7 +34,7 @@ export default function AutoSignIn({
       }
     })();
     return () => { cancelled = true; };
-  }, [idToken, access, popup, router]);
+  }, [idToken, access, router]);
 
   if (error) {
     return (

@@ -42,8 +42,5 @@ export async function GET(req: NextRequest) {
   const signInUrl = new URL("/auth/signin", origin);
   signInUrl.searchParams.set("id_token", idToken);
   signInUrl.searchParams.set("access", access);
-  if (searchParams.get("popup") === "1") {
-    signInUrl.searchParams.set("popup", "1");
-  }
   return NextResponse.redirect(signInUrl, { headers: NO_CACHE });
 }
