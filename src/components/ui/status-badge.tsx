@@ -10,6 +10,9 @@ const STATUS_MAP: Record<string, { label: string; classes: string }> = {
   completed: { label: "Completed", classes: "bg-blue-50 text-blue-700" },
   archived: { label: "Archived", classes: "bg-slate-100 text-slate-500" },
   // Deliverable statuses
+  pending: { label: "Pending", classes: "bg-slate-100 text-slate-500" },
+  review: { label: "In Review", classes: "bg-violet-50 text-violet-700" },
+  approved: { label: "Approved", classes: "bg-blue-50 text-blue-700" },
   not_started: { label: "Not Started", classes: "bg-slate-100 text-slate-500" },
   in_progress: { label: "In Progress", classes: "bg-amber-50 text-amber-700" },
   in_review: { label: "In Review", classes: "bg-violet-50 text-violet-700" },

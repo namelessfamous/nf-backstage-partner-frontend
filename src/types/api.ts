@@ -60,6 +60,64 @@ export interface Deliverable {
   updated_at?: string;
 }
 
+/** Real backstage deliverable shape — /api/v1/deliverables/ (ProjectDeliverableSerializer) */
+export type BackstageDeliverableStatus =
+  | "pending"
+  | "in_progress"
+  | "review"
+  | "approved"
+  | "delivered";
+
+export interface DeliverableFile {
+  id: string;
+  name: string;
+  url: string | null;
+  mime_type?: string | null;
+  size?: number | null;
+}
+
+export interface DeliverableMilestone {
+  label?: string;
+  date?: string;
+  note?: string;
+  done?: boolean;
+}
+
+export interface DeliverableNotesBlock {
+  title?: string;
+  content?: string;
+}
+
+export interface BackstageDeliverable {
+  id: string;
+  project: string;
+  project_name?: string;
+  project_slug?: string;
+  client_id?: string | null;
+  client_name?: string;
+  task?: string | null;
+  task_name?: string;
+  name: string;
+  deliverable_type?: "creative" | "strategy" | string;
+  status: BackstageDeliverableStatus | string;
+  content_md?: string;
+  dropbox_url?: string;
+  google_drive_url?: string;
+  youtube_url?: string;
+  file_details?: DeliverableFile[];
+  notes_blocks?: DeliverableNotesBlock[];
+  notes?: string;
+  milestones?: DeliverableMilestone[];
+  due_to_client?: string | null;
+  due_date?: string | null;
+  delivered_to_client?: string | null;
+  approved_by_client?: string | null;
+  delivered?: string | null;
+  completed?: string | null;
+  created_at?: string;
+  updated_at?: string;
+}
+
 export interface ProjectNote {
   id: string;
   content: string;
