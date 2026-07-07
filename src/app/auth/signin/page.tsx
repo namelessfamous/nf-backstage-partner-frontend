@@ -8,6 +8,7 @@ type SearchParams = {
   id_token?: string;
   access?: string;
   error?: string;
+  popup?: string;
 };
 
 export default async function SignInPage({
@@ -20,15 +21,23 @@ export default async function SignInPage({
     getPartnerContext(),
   ]);
 
+  const isPopup = params.popup === "1";
+
   // If we received tokens back from nf-id, hand off to the client component
   // to create the next-auth session
   if (params.id_token && params.access) {
-    return <AutoSignIn idToken={params.id_token} access={params.access} />;
+    return (
+      <AutoSignIn
+        idToken={params.id_token}
+        access={params.access}
+        popup={isPopup}
+      />
+    );
   }
 
   // Show error state if SSO failed
   if (params.error) {
-    const ssoUrl = await buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID);
+    const ssoUrl = await buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID, isPopup);
     return (
       <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6">
         <div className="max-w-md rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-10 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
@@ -52,7 +61,7 @@ export default async function SignInPage({
   }
 
   // Default: redirect to nf-id SSO
-  const ssoUrl = await buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID);
+  const ssoUrl = await buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID, isPopup);
   redirect(ssoUrl);
 }
 
@@ -61,13 +70,13 @@ export default async function SignInPage({
  * host (this is a hostname-driven white-label app), falling back to
  * NEXTAUTH_URL. The origin must be registered in nf-id's client allowlist.
  */
-async function buildSsoUrl(clientId: string): Promise<string> {
+async function buildSsoUrl(clientId: string, popup = false): Promise<string> {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host");
   const proto = h.get("x-forwarded-proto") ?? "https";
   const appUrl = host
     ? `${proto}://${host}`
     : (process.env.NEXTAUTH_URL ?? "http://localhost:3000").replace(/\/$/, "");
-  const callbackUrl = `${appUrl}/api/auth/sso-callback`;
+  const callbackUrl = `${appUrl}/api/auth/sso-callback${popup ? "?popup=1" : ""}`;
   return `${NF_ID_ISSUER}/api/sso?to=${encodeURIComponent(callbackUrl)}&client_id=${encodeURIComponent(clientId)}`;
 }
