@@ -68,10 +68,19 @@ function toView(d: BackstageDeliverable): DeliverableItemView {
 }
 
 export default async function DashboardPage() {
-  const [scopeCtx, allDeliverables] = await Promise.all([
-    getScopeContext(),
-    apiList<BackstageDeliverable>("/api/v1/deliverables/", { revalidate: 0 }),
-  ]);
+  // Resolve scope first so we can build a targeted API URL
+  const scopeCtx = await getScopeContext();
+
+  // Build scoped deliverables URL — backend now filters server-side;
+  // client-side filter below is belt-and-suspenders.
+  let deliverablesPath = "/api/v1/deliverables/";
+  if (scopeCtx.active.type === "partner") {
+    deliverablesPath += `?partner=${encodeURIComponent(scopeCtx.active.slug)}`;
+  } else if (scopeCtx.active.type === "client") {
+    deliverablesPath += `?client=${encodeURIComponent(scopeCtx.active.slug)}`;
+  }
+
+  const allDeliverables = await apiList<BackstageDeliverable>(deliverablesPath, { revalidate: 0 });
 
   const { activeClientIds, active } = scopeCtx;
 
