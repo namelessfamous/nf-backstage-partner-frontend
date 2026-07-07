@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { apiList } from "@/lib/api";
+import { getScopeContext } from "@/lib/scope";
 import type { Client } from "@/types/api";
 import { EmptyState } from "@/components/ui/empty-state";
 
@@ -17,15 +18,40 @@ export default async function ClientsPage({
   searchParams: Promise<{ q?: string }>;
 }) {
   const { q } = await searchParams;
-  const allClients = await apiList<Client>("/api/v1/clients/");
 
+  const [scopeCtx, allClients] = await Promise.all([
+    getScopeContext(),
+    apiList<Client>("/api/v1/clients/", { revalidate: 0 }),
+  ]);
+
+  const { active, activeClientIds } = scopeCtx;
+
+  // Apply scope filter.
+  // For partner scope: use the pre-resolved activeClientIds list.
+  // For client scope: same — activeClientIds = [that one client's id].
+  // For "all": no filter.
+  const scopedClients =
+    activeClientIds === null
+      ? allClients
+      : allClients.filter((c) => activeClientIds.includes(c.id));
+
+  // Apply text search on top of scope filter.
   const clients = q
-    ? allClients.filter(
+    ? scopedClients.filter(
         (c) =>
           c.name.toLowerCase().includes(q.toLowerCase()) ||
           (c.description ?? "").toLowerCase().includes(q.toLowerCase()),
       )
-    : allClients;
+    : scopedClients;
+
+  const scopeLabel =
+    active.type === "all"
+      ? null
+      : active.type === "partner"
+        ? `partner: ${active.name}`
+        : active.type === "client"
+          ? `client: ${active.name}`
+          : null;
 
   return (
     <div className="space-y-6">
@@ -34,7 +60,8 @@ export default async function ClientsPage({
         <div>
           <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">Clients</h1>
           <p className="mt-1 text-sm text-[var(--brand-muted)]">
-            {allClients.length} client{allClients.length !== 1 ? "s" : ""} in your partner workspace
+            {scopedClients.length} client{scopedClients.length !== 1 ? "s" : ""}
+            {scopeLabel ? ` · ${scopeLabel}` : " in your partner workspace"}
           </p>
         </div>
       </div>
@@ -67,7 +94,11 @@ export default async function ClientsPage({
       {clients.length === 0 ? (
         <EmptyState
           title={q ? `No clients match "${q}"` : "No clients yet"}
-          message={q ? "Try a different search term." : "Clients will appear here once added to backstage."}
+          message={
+            q
+              ? "Try a different search term."
+              : "Clients will appear here once added to backstage."
+          }
           icon={
             <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z" />

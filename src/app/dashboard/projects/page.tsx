@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { apiList } from "@/lib/api";
+import { getScopeContext } from "@/lib/scope";
 import type { Project, ProjectStatus } from "@/types/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -29,12 +30,34 @@ export default async function ProjectsPage({
   const { status, q } = await searchParams;
   const activeStatus = (status ?? "all") as ProjectStatus | "all";
 
-  const allProjects = await apiList<Project>("/api/v1/projects/");
+  // Resolve scope first so we can pass ?client_slug= to the API for client-scope views.
+  const scopeCtx = await getScopeContext();
+  const { active, activeClientIds, activeClientSlug } = scopeCtx;
+
+  // For client scope: push the filter to the API using client_slug query param
+  // (ProjectFilter on the backend has client_slug CharField).
+  // For partner/all scope: fetch all projects and filter server-side.
+  const apiPath = activeClientSlug
+    ? `/api/v1/projects/?client_slug=${encodeURIComponent(activeClientSlug)}`
+    : "/api/v1/projects/";
+
+  const allProjects = await apiList<Project>(apiPath, { revalidate: 0 });
+
+  // For partner scope, filter by whether project.client (UUID) is in the
+  // partner's client ID list. For client scope the API already filtered;
+  // for "all" scope activeClientIds is null so we skip.
+  const scopedProjects =
+    activeClientIds === null || activeClientSlug !== null
+      ? allProjects
+      : allProjects.filter(
+          (p) => p.client != null && activeClientIds.includes(p.client),
+        );
 
   // Filter by status
-  let filtered = activeStatus === "all"
-    ? allProjects
-    : allProjects.filter((p) => p.status === activeStatus);
+  let filtered =
+    activeStatus === "all"
+      ? scopedProjects
+      : scopedProjects.filter((p) => p.status === activeStatus);
 
   // Filter by search query
   if (q) {
@@ -49,11 +72,20 @@ export default async function ProjectsPage({
   // Count by status for tab badges
   const countByStatus = ALL_STATUSES.slice(1).reduce<Record<string, number>>(
     (acc, s) => {
-      acc[s.value] = allProjects.filter((p) => p.status === s.value).length;
+      acc[s.value] = scopedProjects.filter((p) => p.status === s.value).length;
       return acc;
     },
     {},
   );
+
+  const scopeLabel =
+    active.type === "all"
+      ? null
+      : active.type === "partner"
+        ? `partner: ${active.name}`
+        : active.type === "client"
+          ? `client: ${active.name}`
+          : null;
 
   return (
     <div className="space-y-6">
@@ -61,7 +93,8 @@ export default async function ProjectsPage({
       <div>
         <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">Projects</h1>
         <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          {allProjects.length} project{allProjects.length !== 1 ? "s" : ""} across all clients
+          {scopedProjects.length} project{scopedProjects.length !== 1 ? "s" : ""}
+          {scopeLabel ? ` · ${scopeLabel}` : " across all clients"}
         </p>
       </div>
 
@@ -69,11 +102,18 @@ export default async function ProjectsPage({
       <div className="flex flex-wrap gap-2">
         {ALL_STATUSES.map(({ value, label }) => {
           const isActive = activeStatus === value;
-          const count = value === "all" ? allProjects.length : (countByStatus[value] ?? 0);
+          const count =
+            value === "all"
+              ? scopedProjects.length
+              : (countByStatus[value] ?? 0);
           return (
             <Link
               key={value}
-              href={value === "all" ? "/dashboard/projects" : `/dashboard/projects?status=${value}`}
+              href={
+                value === "all"
+                  ? "/dashboard/projects"
+                  : `/dashboard/projects?status=${value}`
+              }
               className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition ${
                 isActive
                   ? "bg-[var(--brand-primary)] text-white shadow-sm"
@@ -84,7 +124,9 @@ export default async function ProjectsPage({
               {count > 0 && (
                 <span
                   className={`rounded-full px-1.5 py-0.5 text-xs tabular-nums ${
-                    isActive ? "bg-white/20 text-white" : "bg-[var(--brand-muted)]/15 text-[var(--brand-muted)]"
+                    isActive
+                      ? "bg-white/20 text-white"
+                      : "bg-[var(--brand-muted)]/15 text-[var(--brand-muted)]"
                   }`}
                 >
                   {count}
@@ -114,7 +156,11 @@ export default async function ProjectsPage({
         </button>
         {q && (
           <a
-            href={activeStatus === "all" ? "/dashboard/projects" : `/dashboard/projects?status=${activeStatus}`}
+            href={
+              activeStatus === "all"
+                ? "/dashboard/projects"
+                : `/dashboard/projects?status=${activeStatus}`
+            }
             className="rounded-2xl border border-black/10 px-4 py-2.5 text-sm text-[var(--brand-muted)] transition hover:border-black/20"
           >
             Clear
@@ -125,11 +171,20 @@ export default async function ProjectsPage({
       {/* Project list */}
       {filtered.length === 0 ? (
         <EmptyState
-          title={q ? `No projects match "${q}"` : `No ${activeStatus === "all" ? "" : activeStatus} projects`}
+          title={
+            q
+              ? `No projects match "${q}"`
+              : `No ${activeStatus === "all" ? "" : activeStatus} projects`
+          }
           message="Try a different filter or search term."
           icon={
             <svg className="h-10 w-10" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={1.5}
+                d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"
+              />
             </svg>
           }
         />
@@ -148,7 +203,10 @@ export default async function ProjectsPage({
               </thead>
               <tbody className="divide-y divide-black/5">
                 {filtered.map((project) => (
-                  <tr key={project.id} className="group transition hover:bg-[var(--brand-surface-strong)]/50">
+                  <tr
+                    key={project.id}
+                    className="group transition hover:bg-[var(--brand-surface-strong)]/50"
+                  >
                     <td className="px-6 py-4">
                       <Link
                         href={`/dashboard/projects/${project.slug}`}

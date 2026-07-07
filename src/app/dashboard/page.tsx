@@ -1,8 +1,8 @@
 import { marked } from "marked";
 import { apiList } from "@/lib/api";
+import { getScopeContext } from "@/lib/scope";
 import type { BackstageDeliverable } from "@/types/api";
 import { StatsCard } from "@/components/ui/stats-card";
-import { getPartnerContext } from "@/lib/partner-context";
 import {
   DeliverablesViewer,
   type DeliverableItemView,
@@ -68,10 +68,21 @@ function toView(d: BackstageDeliverable): DeliverableItemView {
 }
 
 export default async function DashboardPage() {
-  const [{ partner }, deliverables] = await Promise.all([
-    getPartnerContext(),
-    apiList<BackstageDeliverable>("/api/v1/deliverables/"),
+  const [scopeCtx, allDeliverables] = await Promise.all([
+    getScopeContext(),
+    apiList<BackstageDeliverable>("/api/v1/deliverables/", { revalidate: 0 }),
   ]);
+
+  const { activeClientIds, active } = scopeCtx;
+
+  // Filter deliverables by active scope using the client_id field from the serializer.
+  // client_id is the UUID of the project's client; null means a top-level project.
+  const deliverables =
+    activeClientIds === null
+      ? allDeliverables
+      : allDeliverables.filter(
+          (d) => d.client_id != null && activeClientIds.includes(d.client_id),
+        );
 
   const sorted = [...deliverables].sort((a, b) => {
     const rank = (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9);
@@ -91,12 +102,20 @@ export default async function DashboardPage() {
     ["approved", "delivered"].includes(d.status),
   ).length;
 
+  // Heading reflects active scope
+  const scopeHeading =
+    active.type === "all"
+      ? "Deliverables"
+      : active.type === "partner"
+        ? `${active.name} — Deliverables`
+        : `${active.name} — Deliverables`;
+
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">
-          {partner.displayName} — Deliverables
+          {scopeHeading}
         </h1>
         <p className="mt-1 text-sm text-[var(--brand-muted)]">
           Everything we&apos;re producing for you, in one place.

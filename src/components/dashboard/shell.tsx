@@ -5,7 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { PartnerConfig } from "@/lib/partners";
+import type { ScopeContext } from "@/lib/scope";
 import type { Session } from "next-auth";
+import { ScopeSelector } from "@/components/dashboard/scope-selector";
 
 const NAV_ITEMS = [
   {
@@ -40,13 +42,24 @@ const NAV_ITEMS = [
 type Props = {
   partner: PartnerConfig;
   user?: Session["user"];
+  scopeCtx: ScopeContext;
   children: React.ReactNode;
 };
 
-export function DashboardShell({ partner, user, children }: Props) {
+export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
+
+  // Derive a human-readable label for the active scope (shown next to partner badge).
+  const scopeLabel =
+    scopeCtx.active.type === "all"
+      ? null
+      : scopeCtx.active.type === "partner"
+        ? scopeCtx.active.name
+        : scopeCtx.active.type === "client"
+          ? scopeCtx.active.name
+          : null;
 
   const sidebarContent = (
     <div className="flex h-full flex-col">
@@ -129,7 +142,7 @@ export function DashboardShell({ partner, user, children }: Props) {
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top header */}
-        <header className="flex h-16 shrink-0 items-center gap-4 border-b border-black/5 bg-[var(--brand-surface)] px-6">
+        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-black/5 bg-[var(--brand-surface)] px-6">
           {/* Mobile hamburger */}
           <button
             className="rounded-lg p-1.5 text-[var(--brand-muted)] transition hover:bg-[var(--brand-surface-strong)] lg:hidden"
@@ -140,13 +153,29 @@ export function DashboardShell({ partner, user, children }: Props) {
             </svg>
           </button>
 
-          {/* Breadcrumb / page title area */}
+          {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Partner badge */}
-          <span className="hidden rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)] sm:inline">
-            {partner.displayName}
-          </span>
+          {/* Scope selector (only shown when multiple scopes are accessible) */}
+          {scopeCtx.showSelector && (
+            <ScopeSelector
+              active={scopeCtx.active}
+              partners={scopeCtx.partners}
+              clients={scopeCtx.clients}
+            />
+          )}
+
+          {/* Partner + active scope badge */}
+          <div className="hidden items-center gap-2 sm:flex">
+            <span className="rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
+              {partner.displayName}
+            </span>
+            {scopeLabel && scopeLabel !== partner.displayName && (
+              <span className="rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--brand-primary)]/80">
+                {scopeLabel}
+              </span>
+            )}
+          </div>
 
           {/* User avatar */}
           <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-primary)] text-sm font-semibold text-white">
