@@ -37,6 +37,16 @@ import {
   ArrowLeft,
 } from "lucide-react";
 import type { DeliverableFile } from "@/types/api";
+import { DEFAULT_BACKSTAGE_API_URL } from "@/lib/runtime-config";
+
+// Same-origin-friendly content proxy through the backstage API. R2's public
+// domain (r2.namfam.co) does not send CORS headers, so client-side fetches
+// (CSV parsing) must go through /media/<id>/content/ which sets ACAO.
+function proxyContentUrl(file: DeliverableFile): string | null {
+  if (!file.id) return file.url ?? null;
+  const base = DEFAULT_BACKSTAGE_API_URL.replace(/\/$/, "");
+  return `${base}/api/v1/media/${file.id}/content/`;
+}
 
 // ---------------------------------------------------------------------------
 // Types
@@ -437,18 +447,108 @@ function renderRowViewer(props: RowViewerProps): React.ReactElement {
 }
 
 // ---------------------------------------------------------------------------
+// Off-canvas row drawer
+// ---------------------------------------------------------------------------
+
+/**
+ * RowDrawer — right-side off-canvas sidebar that displays a single CSV row via
+ * the template-selected row viewer (default: vertical table). Overlays the
+ * full-page data table rather than replacing it.
+ */
+function RowDrawer({
+  open,
+  onClose,
+  row,
+  template,
+}: {
+  open: boolean;
+  onClose: () => void;
+  row: CsvRow | null;
+  template?: string;
+}) {
+  // Keep the last non-null row mounted through the exit animation so the
+  // content doesn't blank out as the drawer slides away.
+  const [rendered, setRendered] = useState<CsvRow | null>(row);
+  useEffect(() => {
+    if (row) setRendered(row);
+  }, [row]);
+
+  // Escape key to close
+  useEffect(() => {
+    if (!open) return;
+    function handleKey(e: KeyboardEvent) {
+      if (e.key === "Escape") {
+        e.stopPropagation();
+        onClose();
+      }
+    }
+    window.addEventListener("keydown", handleKey, true);
+    return () => window.removeEventListener("keydown", handleKey, true);
+  }, [open, onClose]);
+
+  return (
+    <AnimatePresence>
+      {open && rendered && (
+        <>
+          {/* Backdrop */}
+          <motion.div
+            key="row-backdrop"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm"
+            onClick={onClose}
+            aria-hidden="true"
+          />
+
+          {/* Drawer panel */}
+          <motion.div
+            key="row-panel"
+            initial={{ x: "100%" }}
+            animate={{ x: 0 }}
+            exit={{ x: "100%" }}
+            transition={{ type: "spring", damping: 30, stiffness: 300 }}
+            className="fixed inset-y-0 right-0 z-[61] flex w-full flex-col overflow-hidden bg-[var(--brand-surface)] shadow-2xl sm:w-[480px] lg:w-[560px] sm:rounded-l-3xl"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Row detail"
+          >
+            <div className="flex shrink-0 items-center justify-between gap-3 border-b border-black/5 px-5 pb-4 pt-5">
+              <p className="text-sm font-semibold text-[var(--brand-foreground)]">Row detail</p>
+              <button
+                type="button"
+                onClick={onClose}
+                title="Close"
+                className="flex size-8 items-center justify-center rounded-lg border border-black/10 text-[var(--brand-muted)] transition hover:border-[var(--brand-primary)]/40 hover:text-[var(--brand-foreground)]"
+              >
+                <X className="size-4" />
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-5 py-5">
+              {renderRowViewer({ row: rendered, onBack: onClose, template })}
+            </div>
+          </motion.div>
+        </>
+      )}
+    </AnimatePresence>
+  );
+}
+
+// ---------------------------------------------------------------------------
 // CSV Viewer
 // ---------------------------------------------------------------------------
 
 const PAGE_SIZE = 25;
 
 function CsvViewer({ file }: { file: DeliverableFile }) {
+  const fetchUrl = proxyContentUrl(file);
   const [rows, setRows] = useState<CsvRow[]>([]);
   const [columns, setColumns] = useState<string[]>([]);
   // If there's no URL at all, start in error state to avoid a spurious loading flash
-  const [loading, setLoading] = useState(Boolean(file.url));
+  const [loading, setLoading] = useState(Boolean(fetchUrl));
   const [error, setError] = useState<string | null>(
-    file.url ? null : "No file URL available.",
+    fetchUrl ? null : "No file URL available.",
   );
 
   // Table state
@@ -463,14 +563,15 @@ function CsvViewer({ file }: { file: DeliverableFile }) {
   const template = file.meta?.view_template;
 
   useEffect(() => {
-    if (!file.url) return; // already handled in initial state
+    if (!fetchUrl) return; // already handled in initial state
 
     let cancelled = false;
 
     async function fetchCsv() {
       try {
         const Papa = (await import("papaparse")).default;
-        const response = await fetch(file.url!);
+        // Fetch via the API proxy to avoid R2 CORS failures.
+        const response = await fetch(fetchUrl!);
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         const text = await response.text();
 
@@ -501,7 +602,7 @@ function CsvViewer({ file }: { file: DeliverableFile }) {
     return () => {
       cancelled = true;
     };
-  }, [file.url]);
+  }, [fetchUrl]);
 
   const filtered = filter
     ? rows.filter((row) =>
@@ -551,17 +652,16 @@ function CsvViewer({ file }: { file: DeliverableFile }) {
     );
   }
 
-  // Secondary row viewer — call directly to avoid react-hooks/static-components
-  if (selectedRow) {
-    return renderRowViewer({
-      row: selectedRow,
-      onBack: () => setSelectedRow(null),
-      template: template as string | undefined,
-    });
-  }
-
   return (
     <div className="flex flex-col gap-3">
+      {/* Off-canvas row viewer — overlays the table, does not replace it */}
+      <RowDrawer
+        open={Boolean(selectedRow)}
+        onClose={() => setSelectedRow(null)}
+        row={selectedRow}
+        template={template as string | undefined}
+      />
+
       {/* Filter */}
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 size-4 text-[var(--brand-muted)]/60 pointer-events-none" />
@@ -902,6 +1002,39 @@ export function DeliverableFileViewer({ file, open, onClose }: FileViewerProps) 
       document.body.style.overflow = "";
     };
   }, [open]);
+
+  // CSV (data tables) open as a FULL-PAGE view; everything else uses the
+  // right-side drawer. Data tables need the full width for the sortable,
+  // filterable grid.
+  const fullPage = deriveKind(file) === "csv";
+
+  if (fullPage) {
+    return (
+      <AnimatePresence>
+        {open && (
+          <motion.div
+            key="fullpage"
+            ref={panelRef}
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 12 }}
+            transition={{ duration: 0.2 }}
+            className="fixed inset-0 z-50 flex flex-col bg-[var(--brand-background,var(--brand-surface))]"
+            role="dialog"
+            aria-modal="true"
+            aria-label={`Viewing: ${file.name}`}
+          >
+            <PanelHeader file={file} onClose={onClose} />
+            <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-8 sm:py-6">
+              <div className="mx-auto w-full max-w-[1400px]">
+                <ViewerBody file={file} />
+              </div>
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+    );
+  }
 
   return (
     <AnimatePresence>
