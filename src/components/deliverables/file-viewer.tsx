@@ -258,12 +258,167 @@ function GenericRowViewer({ row, onBack }: RowViewerProps) {
   );
 }
 
+// ---------------------------------------------------------------------------
+// Walk-list (voter canvass) row viewer
+// ---------------------------------------------------------------------------
+
+function pick(row: CsvRow, ...keys: string[]): string {
+  for (const k of keys) {
+    // case-insensitive lookup
+    const hit = Object.keys(row).find((c) => c.toLowerCase() === k.toLowerCase());
+    if (hit && (row[hit] ?? "").trim()) return row[hit].trim();
+  }
+  return "";
+}
+
+function partyTone(party: string): string {
+  const p = party.toLowerCase();
+  if (p.includes("republican")) return "bg-red-50 text-red-700 border-red-200";
+  if (p.includes("democrat")) return "bg-blue-50 text-blue-700 border-blue-200";
+  if (p.includes("independent") || p.includes("non")) return "bg-purple-50 text-purple-700 border-purple-200";
+  return "bg-slate-100 text-slate-600 border-slate-200";
+}
+
+// Columns already surfaced in the card header/body — hidden from the
+// "Additional Fields" dump so we don't duplicate them.
+const WALK_LIST_PRIMARY_COLS = new Set(
+  [
+    "HHName", "FirstName", "MiddleName", "LastName", "SuffixName",
+    "PrimaryAddress1", "PrimaryCity", "PrimaryState", "PrimaryZip", "PrimaryZip4",
+    "PrimaryPhone", "Gender",
+    "CalculatedParty", "OfficialParty", "ObservedParty", "HouseholdParty",
+    "OverAllFrequency", "PrecinctName", "PrecinctNumber", "CountyName",
+  ].map((c) => c.toLowerCase()),
+);
+
+function WalkListRowViewer({ row, onBack }: RowViewerProps) {
+  const first = pick(row, "FirstName");
+  const middle = pick(row, "MiddleName");
+  const last = pick(row, "LastName");
+  const suffix = pick(row, "SuffixName");
+  const hhName = pick(row, "HHName");
+  const displayName =
+    [first, middle, last, suffix].filter(Boolean).join(" ") || hhName || "Voter";
+
+  const addr1 = pick(row, "PrimaryAddress1");
+  const city = pick(row, "PrimaryCity");
+  const state = pick(row, "PrimaryState");
+  const zip = pick(row, "PrimaryZip");
+  const cityLine = [city, state].filter(Boolean).join(", ");
+  const addressLine = [cityLine, zip].filter(Boolean).join(" ");
+
+  const party = pick(row, "CalculatedParty", "OfficialParty", "ObservedParty");
+  const gender = pick(row, "Gender");
+  const phone = pick(row, "PrimaryPhone");
+  const freq = pick(row, "OverAllFrequency");
+  const precinct = pick(row, "PrecinctName");
+  const precinctNo = pick(row, "PrecinctNumber");
+  const county = pick(row, "CountyName");
+
+  const stat: { label: string; value: string }[] = [
+    { label: "Gender", value: gender },
+    { label: "Turnout Frequency", value: freq },
+    { label: "Precinct", value: [precinct, precinctNo].filter(Boolean).join(" · ") },
+    { label: "County", value: county },
+  ].filter((s) => s.value);
+
+  const remaining = Object.entries(row).filter(
+    ([col, value]) => value?.trim() && !WALK_LIST_PRIMARY_COLS.has(col.toLowerCase()),
+  );
+
+  return (
+    <div className="flex flex-col gap-5">
+      <button
+        type="button"
+        onClick={onBack}
+        className="flex items-center gap-1.5 text-sm font-medium text-[var(--brand-primary)] hover:opacity-70"
+      >
+        <ArrowLeft className="size-4" /> Back to walk list
+      </button>
+
+      {/* Header — name + party */}
+      <div className="rounded-2xl border border-black/5 bg-[var(--brand-surface)] p-5">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="text-lg font-semibold text-[var(--brand-foreground)]">
+              {displayName}
+            </p>
+            <p className="text-xs text-[var(--brand-muted)]">Walk List Contact</p>
+          </div>
+          {party && (
+            <span
+              className={`shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium ${partyTone(party)}`}
+            >
+              {party}
+            </span>
+          )}
+        </div>
+
+        {(addr1 || addressLine) && (
+          <div className="mt-4 text-sm text-[var(--brand-foreground)]">
+            {addr1 && <p>{addr1}</p>}
+            {addressLine && <p className="text-[var(--brand-muted)]">{addressLine}</p>}
+          </div>
+        )}
+
+        {phone && (
+          <a
+            href={`tel:${phone.replace(/[^0-9+]/g, "")}`}
+            className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--brand-primary)] hover:opacity-70"
+          >
+            {phone}
+          </a>
+        )}
+      </div>
+
+      {/* Voter stats */}
+      {stat.length > 0 && (
+        <div className="grid grid-cols-2 gap-2">
+          {stat.map(({ label, value }) => (
+            <div
+              key={label}
+              className="rounded-xl border border-black/5 bg-[var(--brand-surface)] px-4 py-3"
+            >
+              <p className="text-xs font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                {label}
+              </p>
+              <p className="mt-0.5 text-sm text-[var(--brand-foreground)]">{value}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Everything else */}
+      {remaining.length > 0 && (
+        <>
+          <p className="text-xs font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+            Additional Fields
+          </p>
+          <div className="rounded-2xl border border-black/5 bg-[var(--brand-surface)] divide-y divide-black/5 overflow-hidden">
+            {remaining.map(([col, value]) => (
+              <div key={col} className="flex flex-col gap-0.5 px-4 py-3">
+                <span className="text-xs font-medium text-[var(--brand-muted)] uppercase tracking-wide">
+                  {col}
+                </span>
+                <span className="text-sm text-[var(--brand-foreground)] break-words">
+                  {value || "\u2014"}
+                </span>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
+}
+
 /**
  * Template registry — add new templates here.
  * Keys match file.meta?.view_template (case-insensitive).
  */
 const ROW_VIEWER_REGISTRY: Record<string, RowViewerComponent> = {
   fundraising: FundraisingRowViewer,
+  walk_list: WalkListRowViewer,
 };
 
 function getRowViewer(template?: string): RowViewerComponent {
