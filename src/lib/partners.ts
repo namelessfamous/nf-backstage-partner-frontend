@@ -30,13 +30,14 @@ export const defaultPartnerConfig: PartnerConfig = {
   hosts: ["localhost", "127.0.0.1", "partner.namfam.co"],
   apiBaseUrl: DEFAULT_BACKSTAGE_API_URL,
   theme: {
-    primary: "#2563eb",
-    secondary: "#172554",
-    accent: "#7dd3fc",
-    surface: "#ffffff",
-    surfaceStrong: "#dbeafe",
-    foreground: "#0f172a",
-    muted: "#526077",
+    // Nameless Famous — brutNOIR brand system
+    primary: "#c8f53c", // acid — CTAs, active states
+    secondary: "#22222a", // noirSurface
+    accent: "#c8f53c", // acid signature accent
+    surface: "#111114", // noirLight — card backgrounds
+    surfaceStrong: "#22222a", // noirSurface — callout/elevated
+    foreground: "#f5f0e8", // cream — primary text
+    muted: "#8a8577", // creamMuted — tertiary/labels
   },
 };
 

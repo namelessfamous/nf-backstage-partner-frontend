@@ -1,21 +1,24 @@
 @import "tailwindcss";
 
+/* Nameless Famous — brutNOIR default theme */
 :root {
-  --background: #f4f7fb;
-  --foreground: #102033;
-  --brand-primary: #1d4ed8;
-  --brand-secondary: #1e293b;
-  --brand-accent: #38bdf8;
-  --brand-surface: #ffffff;
-  --brand-surface-strong: #dbeafe;
-  --brand-muted: #5b6b80;
+  --background: #0a0a0b; /* noir */
+  --foreground: #f5f0e8; /* cream */
+  --brand-primary: #c8f53c; /* acid */
+  --brand-secondary: #22222a; /* noirSurface */
+  --brand-accent: #c8f53c; /* acid */
+  --brand-surface: #111114; /* noirLight */
+  --brand-surface-strong: #22222a; /* noirSurface */
+  --brand-foreground: #f5f0e8; /* cream */
+  --brand-muted: #8a8577; /* creamMuted */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: "Inter", "Segoe UI", Arial, Helvetica, sans-serif;
-  --font-mono: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  --font-sans: var(--font-dm-sans), "DM Sans", "Segoe UI", Arial, Helvetica, sans-serif;
+  --font-serif: var(--font-dm-serif), "DM Serif Display", Georgia, serif;
+  --font-mono: var(--font-dm-mono), "DM Mono", "SFMono-Regular", Consolas, Menlo, monospace;
 }
 
 * {
@@ -31,6 +34,11 @@ body {
   color: var(--brand-foreground);
   font-family: var(--font-sans);
   margin: 0;
+}
+
+h1, h2, h3 {
+  font-family: var(--font-serif);
+  font-weight: 400;
 }
 
 a {
@@ -102,5 +110,5 @@ a {
 
 ::selection {
   background: var(--brand-accent);
-  color: #08111d;
+  color: #0a0a0b;
 }
