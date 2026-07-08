@@ -68,12 +68,19 @@ export type BackstageDeliverableStatus =
   | "approved"
   | "delivered";
 
+export interface DeliverableFileMeta {
+  allow_download?: boolean;
+  view_template?: string;
+  [key: string]: unknown;
+}
+
 export interface DeliverableFile {
   id: string;
   name: string;
   url: string | null;
   mime_type?: string | null;
   size?: number | null;
+  meta?: DeliverableFileMeta;
 }
 
 export interface DeliverableMilestone {

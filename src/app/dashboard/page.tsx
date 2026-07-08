@@ -55,7 +55,14 @@ function toView(d: BackstageDeliverable): DeliverableItemView {
     contentHtml: md(d.content_md),
     notes,
     links,
-    files: (d.file_details ?? []).map((f) => ({ id: f.id, name: f.name, url: f.url })),
+    files: (d.file_details ?? []).map((f) => ({
+      id: f.id,
+      name: f.name,
+      url: f.url,
+      mime_type: f.mime_type,
+      size: f.size,
+      meta: f.meta,
+    })),
     milestones: (d.milestones ?? [])
       .filter((m) => m.label)
       .map((m) => ({

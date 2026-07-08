@@ -15,9 +15,12 @@ import {
   Flag,
   CheckCircle2,
   Circle,
+  Download,
 } from "lucide-react";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { DeliverableFileViewer } from "@/components/deliverables/file-viewer";
+import type { DeliverableFile } from "@/types/api";
 
 export interface DeliverableItemView {
   id: string;
@@ -32,7 +35,7 @@ export interface DeliverableItemView {
   contentHtml?: string;
   notes: { title: string; html: string }[];
   links: { label: string; url: string; kind: "dropbox" | "drive" | "youtube" }[];
-  files: { id: string; name: string; url: string | null }[];
+  files: DeliverableFile[];
   milestones: { label: string; date?: string; done?: boolean; note?: string }[];
 }
 
@@ -53,6 +56,7 @@ const TYPE_DOT: Record<string, string> = {
 export function DeliverablesViewer({ items }: { items: DeliverableItemView[] }) {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [expanded, setExpanded] = useState<string | null>(null);
+  const [viewerFile, setViewerFile] = useState<DeliverableFile | null>(null);
 
   const counts = useMemo(() => {
     const c: Record<string, number> = { all: items.length };
@@ -67,6 +71,14 @@ export function DeliverablesViewer({ items }: { items: DeliverableItemView[] }) 
 
   return (
     <div className="space-y-4">
+      {/* File viewer drawer */}
+      {viewerFile && (
+        <DeliverableFileViewer
+          file={viewerFile}
+          open={Boolean(viewerFile)}
+          onClose={() => setViewerFile(null)}
+        />
+      )}
       {/* Status filter chips */}
       <div className="flex flex-wrap gap-2">
         {STATUS_FILTERS.filter((f) => f.value === "all" || (counts[f.value] ?? 0) > 0).map(
@@ -161,6 +173,58 @@ export function DeliverablesViewer({ items }: { items: DeliverableItemView[] }) 
                           </p>
                         )}
 
+                        {/* Files & links first — surfaced above content */}
+                        {(item.links.length > 0 || item.files.length > 0) && (
+                          <div className="flex flex-wrap gap-2">
+                            {item.links.map((link) => (
+                              <a
+                                key={link.url}
+                                href={link.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-[var(--brand-surface)] px-3 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:border-[var(--brand-primary)]/40"
+                              >
+                                {link.kind === "youtube" ? (
+                                  <Play className="size-3.5" />
+                                ) : (
+                                  <ExternalLink className="size-3.5" />
+                                )}
+                                {link.label}
+                              </a>
+                            ))}
+                            {item.files.map((file) =>
+                              file.url ? (
+                                <span key={file.id} className="inline-flex items-center gap-0">
+                                  {/* Open viewer chip */}
+                                  <button
+                                    type="button"
+                                    onClick={() => setViewerFile(file)}
+                                    className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-[var(--brand-surface)] px-3 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:border-[var(--brand-primary)]/40"
+                                    style={{ borderRadius: file.meta?.allow_download ? "9999px 0 0 9999px" : undefined }}
+                                  >
+                                    <Paperclip className="size-3.5" />
+                                    {file.name}
+                                  </button>
+                                  {/* Download affordance — only when allow_download */}
+                                  {file.meta?.allow_download && (
+                                    <a
+                                      href={file.url}
+                                      download={file.name}
+                                      target="_blank"
+                                      rel="noopener noreferrer"
+                                      title="Download"
+                                      className="inline-flex items-center justify-center border border-l-0 border-black/10 bg-[var(--brand-surface)] px-2 py-1.5 text-[var(--brand-muted)] transition hover:border-[var(--brand-primary)]/40 hover:text-[var(--brand-primary)]"
+                                      style={{ borderRadius: "0 9999px 9999px 0" }}
+                                    >
+                                      <Download className="size-3.5" />
+                                    </a>
+                                  )}
+                                </span>
+                              ) : null,
+                            )}
+                          </div>
+                        )}
+
                         {item.contentHtml && (
                           <div
                             className="dl-prose text-sm"
@@ -213,41 +277,6 @@ export function DeliverablesViewer({ items }: { items: DeliverableItemView[] }) 
                             />
                           </div>
                         ))}
-
-                        {(item.links.length > 0 || item.files.length > 0) && (
-                          <div className="flex flex-wrap gap-2">
-                            {item.links.map((link) => (
-                              <a
-                                key={link.url}
-                                href={link.url}
-                                target="_blank"
-                                rel="noopener noreferrer"
-                                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-[var(--brand-surface)] px-3 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:border-[var(--brand-primary)]/40"
-                              >
-                                {link.kind === "youtube" ? (
-                                  <Play className="size-3.5" />
-                                ) : (
-                                  <ExternalLink className="size-3.5" />
-                                )}
-                                {link.label}
-                              </a>
-                            ))}
-                            {item.files.map((file) =>
-                              file.url ? (
-                                <a
-                                  key={file.id}
-                                  href={file.url}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-[var(--brand-surface)] px-3 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:border-[var(--brand-primary)]/40"
-                                >
-                                  <Paperclip className="size-3.5" />
-                                  {file.name}
-                                </a>
-                              ) : null,
-                            )}
-                          </div>
-                        )}
 
                         {(item.deliveredDate || item.projectSlug) && (
                           <div className="flex flex-wrap items-center gap-x-6 gap-y-1 text-xs text-[var(--brand-muted)]">
