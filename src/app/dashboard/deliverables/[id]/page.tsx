@@ -134,7 +134,10 @@ export default async function DeliverableDetailPage({
           <div className="mb-4 flex items-center justify-between gap-4">
             <h2 className="text-lg font-semibold text-[var(--brand-foreground)]">Content</h2>
             {deliverable.content_md && (
-              <ContentExportToolbar contentMd={deliverable.content_md} />
+              <ContentExportToolbar
+                contentMd={deliverable.content_md}
+                deliverableId={id}
+              />
             )}
           </div>
           <div className="rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-8 deliverable-print-content">

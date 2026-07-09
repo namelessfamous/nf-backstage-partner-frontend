@@ -11,7 +11,7 @@
  */
 
 import React, { useMemo, useRef, useState } from "react";
-import { Printer, Download, CheckCircle2, ChevronDown } from "lucide-react";
+import { FileText, Download, CheckCircle2, ChevronDown } from "lucide-react";
 import type { ProposalDetail, ProposalVersion } from "@/types/api";
 
 // ── Formatting helpers ───────────────────────────────────────────────────────
@@ -63,8 +63,13 @@ export function ProposalViewer({ proposal }: { proposal: ProposalDetail }) {
     );
   }
 
-  function handlePrint() {
-    window.print();
+  function openPdf() {
+    // Open the server-rendered, print-to-PDF document for the active version.
+    window.open(
+      `/dashboard/proposals/${proposal.id}/pdf?version=${encodeURIComponent(active.id)}`,
+      "_blank",
+      "noopener,noreferrer",
+    );
   }
 
   function exportCsv(version: ProposalVersion) {
@@ -154,11 +159,11 @@ export function ProposalViewer({ proposal }: { proposal: ProposalDetail }) {
         {/* Actions */}
         <div className="flex items-center gap-2 proposal-toolbar-actions">
           <button
-            onClick={handlePrint}
+            onClick={openPdf}
             className="flex items-center gap-1.5 rounded-2xl border border-black/10 bg-[var(--brand-surface)] px-3 py-2 text-sm font-medium text-[var(--brand-foreground)] transition hover:border-black/20"
           >
-            <Printer className="size-4" />
-            Print
+            <FileText className="size-4" />
+            PDF
           </button>
           <div className="relative">
             <button

@@ -18,7 +18,6 @@ import {
   File,
   Video,
   Table,
-  Printer,
   ChevronDown,
   Plus,
   Paperclip,
@@ -69,8 +68,24 @@ function formatBytes(bytes: number | null | undefined): string {
 // Content Export Toolbar
 // ---------------------------------------------------------------------------
 
-export function ContentExportToolbar({ contentMd }: { contentMd: string }) {
+export function ContentExportToolbar({
+  contentMd,
+  deliverableId,
+}: {
+  contentMd: string;
+  deliverableId: string;
+}) {
   const [open, setOpen] = useState(false);
+
+  function openPdf() {
+    // Open the server-rendered, print-to-PDF document route in a new tab.
+    window.open(
+      `/dashboard/deliverables/${deliverableId}/pdf`,
+      "_blank",
+      "noopener,noreferrer",
+    );
+    setOpen(false);
+  }
 
   function downloadBlob(content: string, filename: string, type: string) {
     const blob = new Blob([content], { type });
@@ -113,27 +128,16 @@ export function ContentExportToolbar({ contentMd }: { contentMd: string }) {
     setOpen(false);
   }
 
-  function handlePrint() {
-    window.print();
-    setOpen(false);
-  }
-
-  function exportPdf() {
-    // Use browser print-to-PDF dialog — most reliable cross-browser PDF path
-    window.print();
-    setOpen(false);
-  }
-
   return (
     <div className="relative flex items-center gap-2">
       <button
         type="button"
-        onClick={handlePrint}
-        title="Print"
+        onClick={openPdf}
+        title="Open as PDF"
         className="inline-flex items-center gap-1.5 rounded-xl border border-black/10 bg-[var(--brand-surface)] px-3 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:border-[var(--brand-primary)]/40 hover:text-[var(--brand-foreground)]"
       >
-        <Printer className="size-3.5" />
-        Print
+        <FileText className="size-3.5" />
+        PDF
       </button>
 
       <div className="relative">
@@ -167,10 +171,10 @@ export function ContentExportToolbar({ contentMd }: { contentMd: string }) {
               </button>
               <button
                 type="button"
-                onClick={exportPdf}
+                onClick={openPdf}
                 className="flex w-full items-center gap-2 px-4 py-2.5 text-left text-sm text-[var(--brand-foreground)] hover:bg-[var(--brand-surface-strong)]/50"
               >
-                .pdf (print)
+                .pdf
               </button>
               <button
                 type="button"

@@ -18,6 +18,8 @@ import type { ScopeContext } from "@/lib/scope";
 import type { Session } from "next-auth";
 import { ScopeSelector } from "@/components/dashboard/scope-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { UserMenu } from "@/components/dashboard/user-menu";
+import { DashboardFooter } from "@/components/dashboard/footer";
 
 // User avatar: renders the SSO photo when present, otherwise a colored
 // initial. `tone="header"` uses brand fills; `tone="footer"` sits on the
@@ -273,14 +275,15 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
             )}
           </div>
 
-          {/* User avatar */}
-          <UserAvatar user={user} tone="header" />
+          {/* User menu (avatar dropdown) */}
+          <UserMenu user={user} supportEmail={partner.supportEmail} />
         </header>
 
-        {/* Page content */}
-        <main className="flex-1 overflow-y-auto p-6 lg:p-8">
-          {children}
-        </main>
+        {/* Scrollable region: page content + footer */}
+        <div className="flex flex-1 flex-col overflow-y-auto">
+          <main className="flex-1 p-6 lg:p-8">{children}</main>
+          <DashboardFooter partner={partner} />
+        </div>
       </div>
     </div>
   );
