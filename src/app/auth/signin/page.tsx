@@ -46,7 +46,11 @@ export default async function SignInPage({
           </p>
           <a
             href={ssoUrl}
-            className="mt-6 inline-block rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90"
+            style={{
+              backgroundColor: "var(--brand-primary)",
+              color: "var(--brand-on-primary)",
+            }}
+            className="mt-6 inline-block rounded-full px-5 py-3 text-sm font-semibold transition hover:opacity-90"
           >
             Sign in with nf-id
           </a>
