@@ -28,6 +28,27 @@ export type ThemePalette = {
   sidebarText?: string;
 };
 
+/**
+ * Partner-scoped typography + brand marks. When present these override the
+ * portal's default NF Typekit fonts and NF logo/icon.
+ */
+export type PartnerBranding = {
+  /** Web-font stylesheet URL (Adobe Typekit or Google Fonts <link href>). */
+  fontCssUrl?: string;
+  /** CSS font-family stack for sans/body text. */
+  fontSans?: string;
+  /** CSS font-family stack for serif/display headings. */
+  fontSerif?: string;
+  /** CSS font-family stack for monospace. Falls back to portal default. */
+  fontMono?: string;
+  /** Wide wordmark/logo used in the expanded sidebar header. Public path. */
+  logo?: string;
+  /** Square mark used collapsed + as favicon. Public path. */
+  icon?: string;
+  /** Apple touch icon. Public path. */
+  appleIcon?: string;
+};
+
 export type PartnerConfig = {
   key: string;
   /** client_id passed to nf-id SSO. Defaults to NF_ID_CLIENT_ID env var ("partner-portal"). */
@@ -37,6 +58,8 @@ export type PartnerConfig = {
   supportEmail: string;
   hosts: string[];
   apiBaseUrl?: string;
+  /** Optional per-partner fonts + logo/icon. Omit to inherit NF defaults. */
+  branding?: PartnerBranding;
   /**
    * Which palette the portal defaults to before the visitor has chosen one.
    * Overridable at runtime via the header light/dark switcher.
@@ -104,37 +127,53 @@ export const partnerConfigs: PartnerConfig[] = [
     description:
       "White-labeled view for Grit Creative teams managing backstage partner data.",
     supportEmail: "hello@gritcreative.co",
-    hosts: ["gritcreative.namfam.co"],
+    // Primary custom-domain host + namfam.co subdomain fallback.
+    hosts: ["win.gritcreative.co", "gritcreative.namfam.co"],
     apiBaseUrl: DEFAULT_BACKSTAGE_API_URL,
     defaultMode: "light",
+    branding: {
+      // Adobe Typekit kit bgl5djd from gritcreative.co
+      fontCssUrl: "https://use.typekit.net/bgl5djd.css",
+      fontSans: '"proxima-nova", sans-serif',
+      fontSerif: '"baskerville-urw", serif',
+      // Grit has no mono kit — body/mono slots use proxima-nova, not monospace.
+      fontMono: '"proxima-nova", sans-serif',
+      logo: "/brands/grit-creative/grit-logo.svg",
+      icon: "/brands/grit-creative/grit-logo.svg",
+      appleIcon: "/brands/grit-creative/apple-touch-icon.png",
+    },
+    // Real Grit Creative brand (gritcreative.co): red #aa3423 + cream #ede5ce,
+    // Typekit baskerville-urw (serif) + proxima-nova (sans), grit shield logo.
     theme: {
       light: {
-        primary: "#ca8a04",
-        secondary: "#422006",
-        accent: "#fcd34d",
-        surface: "#fffdf6",
-        surfaceStrong: "#fef3c7",
-        foreground: "#292524",
-        muted: "#57534e",
-        onPrimary: "#292524", // dark text on the gold primary
-        navIcon: "#292524", // dark nav icons on the gold gradient
-        background: "#fffbeb",
-        sidebarFrom: "#fcd34d", // gold
-        sidebarTo: "#fffdf6", // near-white
+        primary: "#aa3423", // Grit red
+        secondary: "#3f3d3a", // warm charcoal
+        accent: "#80271a", // deep red accent
+        surface: "#ffffff", // card backgrounds
+        surfaceStrong: "#ede5ce", // cream elevated / callout
+        foreground: "#181819", // near-black ink
+        muted: "#65635b", // muted gray-brown
+        onPrimary: "#ede5ce", // cream text on red primary
+        navIcon: "#ede5ce", // cream nav icons on red gradient
+        background: "#ede5ce", // signature cream paper
+        sidebarFrom: "#aa3423", // Grit red (top)
+        sidebarTo: "#80271a", // deep red (bottom)
+        sidebarText: "#ede5ce", // cream on red
       },
       dark: {
-        primary: "#eab308", // brighter gold for dark bg
-        secondary: "#3a2408",
-        accent: "#fcd34d",
-        surface: "#1c1710", // warm noir
-        surfaceStrong: "#2a2013",
-        foreground: "#f7f0df",
-        muted: "#b8a97f",
-        onPrimary: "#292524", // dark text on gold
-        navIcon: "#292524", // dark nav icons so black nav text pairs cleanly
-        background: "#14100a",
-        sidebarFrom: "#fcd34d", // gold
-        sidebarTo: "#fef3c7", // pale gold
+        primary: "#e9a196", // lightened red — reads on dark
+        secondary: "#2b2b29", // dark surface
+        accent: "#aa3423", // Grit red accent
+        surface: "#1a1917", // warm noir card
+        surfaceStrong: "#2b2b29", // elevated surface
+        foreground: "#ede5ce", // cream text on dark
+        muted: "#b3ad9d", // muted warm gray
+        onPrimary: "#181819", // ink on light red primary
+        navIcon: "#ede5ce", // cream nav icons on red gradient
+        background: "#141312", // warm noir background
+        sidebarFrom: "#aa3423", // Grit red (top)
+        sidebarTo: "#64271e", // deep red (bottom)
+        sidebarText: "#ede5ce", // cream on red
       },
     },
   },

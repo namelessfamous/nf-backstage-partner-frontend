@@ -27,6 +27,13 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
+  --font-sans: var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-mono: var(--font-mono);
+}
+
+/* Default font stacks. Partner branding overrides --font-* at :root in layout. */
+:root {
   --font-sans: "obviously-variable", sans-serif;
   --font-serif: "obviously-variable", sans-serif;
   --font-mono: "space-mono", monospace;
@@ -54,17 +61,17 @@ html {
 body {
   background: var(--background);
   color: var(--brand-foreground);
-  font-family: "space-mono", monospace;
+  font-family: var(--font-mono);
   margin: 0;
 }
 
 h1, h2, h3 {
-  font-family: "obviously-variable", sans-serif;
+  font-family: var(--font-serif);
   font-variation-settings: 'wdth' 100, 'wght' 800, 'ital' 0;
 }
 
 h4, h5, h6 {
-  font-family: "obviously-variable", sans-serif;
+  font-family: var(--font-serif);
   font-variation-settings: 'wdth' 150, 'wght' 500, 'ital' 0;
 }
 

@@ -5,14 +5,16 @@ import "./globals.css";
 
 export async function generateMetadata(): Promise<Metadata> {
   const { partner } = await getPartnerContext();
+  const icon = partner.branding?.icon ?? "/nf-icon-composed.svg";
+  const apple = partner.branding?.appleIcon ?? icon;
 
   return {
     title: `${partner.displayName} Partner Portal`,
     description: partner.description,
     icons: {
-      icon: "/nf-icon-composed.svg",
-      shortcut: "/nf-icon-composed.svg",
-      apple: "/nf-icon-composed.svg",
+      icon,
+      shortcut: icon,
+      apple,
     },
   };
 }
@@ -34,10 +36,36 @@ export default async function RootLayout({
       className="h-full antialiased"
     >
       <head>
-        {/* Nameless Famous — Typekit: obviously-variable + space-mono */}
-        <link rel="stylesheet" href="https://use.typekit.net/xhf6mln.css" />
+        {/* Typekit: partner-scoped kit when set, else NF (obviously-variable + space-mono). */}
+        <link
+          rel="stylesheet"
+          href={
+            partner.branding?.fontCssUrl ?? "https://use.typekit.net/xhf6mln.css"
+          }
+        />
         {/* Partner-scoped palettes bound to html[data-theme]. */}
         <style dangerouslySetInnerHTML={{ __html: buildThemeCss(partner) }} />
+        {/* Partner-scoped font-family overrides (over globals.css defaults). */}
+        {partner.branding &&
+          (partner.branding.fontSans || partner.branding.fontSerif) && (
+            <style
+              dangerouslySetInnerHTML={{
+                __html: `:root{${
+                  partner.branding.fontSans
+                    ? `--font-sans:${partner.branding.fontSans};`
+                    : ""
+                }${
+                  partner.branding.fontSerif
+                    ? `--font-serif:${partner.branding.fontSerif};`
+                    : ""
+                }${
+                  partner.branding.fontMono
+                    ? `--font-mono:${partner.branding.fontMono};`
+                    : ""
+                }}`,
+              }}
+            />
+          )}
         {/* Resolve stored/default theme before first paint to avoid FOUC. */}
         <script
           dangerouslySetInnerHTML={{ __html: themeInitScript(partner.defaultMode) }}

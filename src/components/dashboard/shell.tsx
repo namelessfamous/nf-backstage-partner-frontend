@@ -64,11 +64,13 @@ function UserAvatar({
 
 // Composed NF mark used in the header (acid-lime tile + noir glyph).
 function NfIcon({ partner }: { partner: PartnerConfig }) {
-  if (partner.key === "default") {
+  const icon =
+    partner.key === "default" ? "/nf-icon-composed.svg" : partner.branding?.icon;
+  if (icon) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src="/nf-icon-composed.svg"
+        src={icon}
         alt={partner.displayName}
         width={32}
         height={32}
@@ -197,6 +199,21 @@ export function DashboardShell({ partner, user, scopeCtx, navData, children }: P
             alt={partner.displayName}
             className="h-8 w-auto"
           />
+        ) : partner.branding?.logo ? (
+          <div className="flex items-center gap-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={partner.branding.logo}
+              alt={partner.displayName}
+              className="h-8 w-auto"
+            />
+            <span
+              className="text-lg font-semibold"
+              style={{ color: "var(--brand-sidebar-text)" }}
+            >
+              {partner.displayName}
+            </span>
+          </div>
         ) : (
           <span
             className="text-lg font-semibold"
