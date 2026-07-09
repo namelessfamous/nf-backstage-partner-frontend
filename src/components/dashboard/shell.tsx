@@ -168,11 +168,13 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
           {/* Partner + active scope badge */}
           <div className="hidden items-center gap-2 sm:flex">
             {partner.key === "default" ? (
-              <span className="flex items-center rounded-full bg-[var(--brand-foreground)] px-3 py-1">
+              <span className="flex items-center rounded-full bg-[var(--brand-foreground)] px-3 py-1.5">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="https://r2.namfam.co/namelessfamous-logo-min.svg"
+                  src="/namelessfamous-logo.svg"
                   alt={partner.displayName}
+                  width={64}
+                  height={24}
                   className="h-5 w-auto"
                 />
               </span>
