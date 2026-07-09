@@ -2,9 +2,18 @@
 
 import { signOut } from "next-auth/react";
 
+const NF_ID_LOGOUT_URL = "https://id.namfam.co/logout";
+
 type AuthControlsProps = {
   isAuthenticated: boolean;
 };
+
+// Clear the local NextAuth session, then hand off to the central nf-id
+// logout route so the SSO session is terminated and we don't bounce back in.
+async function fullSignOut() {
+  await signOut({ redirect: false });
+  window.location.href = NF_ID_LOGOUT_URL;
+}
 
 export function AuthControls({ isAuthenticated }: AuthControlsProps) {
   if (isAuthenticated) {
@@ -18,7 +27,7 @@ export function AuthControls({ isAuthenticated }: AuthControlsProps) {
         </a>
         <button
           className="cursor-pointer rounded-full border border-[var(--brand-secondary)]/20 bg-transparent px-5 py-3 text-sm font-semibold text-[var(--brand-foreground)] transition hover:border-[var(--brand-secondary)]/40"
-          onClick={() => signOut({ callbackUrl: "/" })}
+          onClick={() => void fullSignOut()}
           type="button"
         >
           Sign out

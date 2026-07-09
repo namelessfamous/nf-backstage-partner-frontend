@@ -5,6 +5,15 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { signOut } from "next-auth/react";
 import type { PartnerConfig } from "@/lib/partners";
+
+const NF_ID_LOGOUT_URL = "https://id.namfam.co/logout";
+
+// Clear the local NextAuth session, then hand off to the central nf-id
+// logout route so the SSO session is terminated and we don't bounce back in.
+async function fullSignOut() {
+  await signOut({ redirect: false });
+  window.location.href = NF_ID_LOGOUT_URL;
+}
 import type { ScopeContext } from "@/lib/scope";
 import type { Session } from "next-auth";
 import { ScopeSelector } from "@/components/dashboard/scope-selector";
@@ -65,7 +74,16 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
     <div className="flex h-full flex-col">
       {/* Partner wordmark */}
       <div className="flex h-16 shrink-0 items-center border-b border-black/10 px-6">
-        <span className="text-lg font-semibold text-black">{partner.displayName}</span>
+        {partner.key === "default" ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/namelessfamous-logo.svg"
+            alt={partner.displayName}
+            className="h-8 w-auto"
+          />
+        ) : (
+          <span className="text-lg font-semibold text-black">{partner.displayName}</span>
+        )}
       </div>
 
       {/* Nav */}
@@ -106,7 +124,7 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
             <p className="truncate text-xs text-white/60">{user?.email}</p>
           </div>
           <button
-            onClick={() => signOut({ callbackUrl: "/" })}
+            onClick={() => void fullSignOut()}
             title="Sign out"
             className="rounded-lg p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white"
           >
@@ -168,14 +186,14 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
           {/* Partner + active scope badge */}
           <div className="hidden items-center gap-2 sm:flex">
             {partner.key === "default" ? (
-              <span className="flex items-center rounded-full bg-[var(--brand-foreground)] px-3 py-1.5">
+              <span className="flex items-center">
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img
-                  src="/namelessfamous-logo.svg"
+                  src="/nf-icon-composed.svg"
                   alt={partner.displayName}
-                  width={64}
-                  height={24}
-                  className="h-5 w-auto"
+                  width={32}
+                  height={32}
+                  className="h-8 w-8"
                 />
               </span>
             ) : (

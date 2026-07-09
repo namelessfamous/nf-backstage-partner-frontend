@@ -32,6 +32,11 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: `${partner.displayName} Partner Portal`,
     description: partner.description,
+    icons: {
+      icon: "/nf-icon-composed.svg",
+      shortcut: "/nf-icon-composed.svg",
+      apple: "/nf-icon-composed.svg",
+    },
   };
 }
 
