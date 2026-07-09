@@ -80,13 +80,13 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
               key={item.href}
               href={item.href}
               onClick={closeSidebar}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-black transition ${
                 isActive
-                  ? "bg-white/15 text-white"
-                  : "text-white/70 hover:bg-white/10 hover:text-white"
+                  ? "bg-black/10"
+                  : "hover:bg-black/5"
               }`}
             >
-              {item.icon}
+              <span className="text-[var(--brand-nav-icon)]">{item.icon}</span>
               {item.label}
             </Link>
           );

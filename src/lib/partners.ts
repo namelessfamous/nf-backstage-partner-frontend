@@ -19,6 +19,8 @@ export type PartnerConfig = {
     muted: string;
     /** Foreground color used on top of `primary`/`accent` fills. Must contrast the acid lime — always dark. */
     onPrimary: string;
+    /** Accent color for sidebar nav icons — distinct from the black nav text. */
+    navIcon: string;
   };
 };
 
@@ -41,6 +43,7 @@ export const defaultPartnerConfig: PartnerConfig = {
     foreground: "#f5f0e8", // cream — primary text
     muted: "#8a8577", // creamMuted — tertiary/labels
     onPrimary: "#0a0a0b", // noir — text on acid lime (always dark)
+    navIcon: "#7c3aed", // violet — nav icon accent, complements acid lime
   },
 };
 
@@ -64,6 +67,7 @@ export const partnerConfigs: PartnerConfig[] = [
       foreground: "#292524",
       muted: "#57534e",
       onPrimary: "#292524", // dark text on the gold primary
+      navIcon: "#292524", // dark nav icons on the gold gradient
     },
   },
 ];

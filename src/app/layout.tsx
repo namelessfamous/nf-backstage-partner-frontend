@@ -59,6 +59,7 @@ export default async function RootLayout({
             "--brand-foreground": partner.theme.foreground,
             "--brand-muted": partner.theme.muted,
             "--brand-on-primary": partner.theme.onPrimary,
+            "--brand-nav-icon": partner.theme.navIcon,
           } as CSSProperties
         }
       >
