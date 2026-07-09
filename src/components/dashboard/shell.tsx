@@ -127,6 +127,18 @@ const DASHBOARD_ITEM = {
   ),
 };
 
+// Political dashboard link — top-level area (like Dashboard), not a resource
+// flyout. Sits directly under Dashboard.
+const POLITICAL_ITEM = {
+  href: "/dashboard/political",
+  label: "Political",
+  icon: (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 21h18M4 21V10l8-6 8 6v11M9 21v-6h6v6" />
+    </svg>
+  ),
+};
+
 // Resource items — each gets a searchable flyout (Task 4). `key` maps to the
 // entries list supplied by the layout via `navData`.
 const RESOURCE_ITEMS: {
@@ -281,6 +293,21 @@ export function DashboardShell({ partner, user, scopeCtx, navData, children }: P
         >
           <span className="text-[var(--brand-nav-icon)]">{DASHBOARD_ITEM.icon}</span>
           {DASHBOARD_ITEM.label}
+        </Link>
+
+        {/* Political dashboard link */}
+        <Link
+          href={POLITICAL_ITEM.href}
+          onClick={closeSidebar}
+          style={{ color: "var(--brand-sidebar-text)" }}
+          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+            pathname.startsWith("/dashboard/political")
+              ? "bg-[var(--brand-sidebar-text)]/15"
+              : "hover:bg-[var(--brand-sidebar-text)]/10"
+          }`}
+        >
+          <span className="text-[var(--brand-nav-icon)]">{POLITICAL_ITEM.icon}</span>
+          {POLITICAL_ITEM.label}
         </Link>
 
         {/* Divider between Dashboard and resource group */}
