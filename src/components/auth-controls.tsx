@@ -1,18 +1,13 @@
 "use client";
 
-import { signOut } from "next-auth/react";
-
-const NF_ID_LOGOUT_URL = "https://id.namfam.co/logout";
-
 type AuthControlsProps = {
   isAuthenticated: boolean;
 };
 
-// Clear the local NextAuth session, then hand off to the central nf-id
-// logout route so the SSO session is terminated and we don't bounce back in.
-async function fullSignOut() {
-  await signOut({ redirect: false });
-  window.location.href = NF_ID_LOGOUT_URL;
+// Server route clears the local partner session cookie (race-free) then hands
+// off to the central nf-id /logout with a return back to this app.
+function fullSignOut() {
+  window.location.href = "/api/auth/logout";
 }
 
 export function AuthControls({ isAuthenticated }: AuthControlsProps) {

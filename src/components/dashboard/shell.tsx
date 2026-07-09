@@ -3,16 +3,12 @@
 import { useState, useCallback } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { signOut } from "next-auth/react";
 import type { PartnerConfig } from "@/lib/partners";
 
-const NF_ID_LOGOUT_URL = "https://id.namfam.co/logout";
-
-// Clear the local NextAuth session, then hand off to the central nf-id
-// logout route so the SSO session is terminated and we don't bounce back in.
-async function fullSignOut() {
-  await signOut({ redirect: false });
-  window.location.href = NF_ID_LOGOUT_URL;
+// Server route clears the local partner session cookie (race-free) then hands
+// off to the central nf-id /logout with a return back to this app.
+function fullSignOut() {
+  window.location.href = "/api/auth/logout";
 }
 import type { ScopeContext } from "@/lib/scope";
 import type { Session } from "next-auth";

@@ -11,15 +11,13 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { signOut } from "next-auth/react";
 import { LayoutDashboard, LifeBuoy, LogOut } from "lucide-react";
 import type { Session } from "next-auth";
 
-const NF_ID_LOGOUT_URL = "https://id.namfam.co/logout";
-
-async function fullSignOut() {
-  await signOut({ redirect: false });
-  window.location.href = NF_ID_LOGOUT_URL;
+// Server route clears the local partner session cookie (race-free) then hands
+// off to the central nf-id /logout with a return back to this app.
+function fullSignOut() {
+  window.location.href = "/api/auth/logout";
 }
 
 function Avatar({ user }: { user?: Session["user"] }) {
@@ -127,7 +125,7 @@ export function UserMenu({
                 role="menuitem"
                 onClick={() => {
                   setOpen(false);
-                  void fullSignOut();
+                  fullSignOut();
                 }}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-red-500 transition hover:bg-red-500/10"
               >
