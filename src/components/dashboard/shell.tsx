@@ -20,6 +20,7 @@ import { ScopeSelector } from "@/components/dashboard/scope-selector";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { UserMenu } from "@/components/dashboard/user-menu";
 import { DashboardFooter } from "@/components/dashboard/footer";
+import { NavFlyout, type FlyoutEntry } from "@/components/dashboard/nav-flyout";
 
 // User avatar: renders the SSO photo when present, otherwise a colored
 // initial. `tone="header"` uses brand fills; `tone="footer"` sits on the
@@ -82,17 +83,37 @@ function NfIcon({ partner }: { partner: PartnerConfig }) {
   );
 }
 
-const NAV_ITEMS = [
+// Top-level dashboard link (Task 3) — sits above the resource group.
+const DASHBOARD_ITEM = {
+  href: "/dashboard",
+  label: "Dashboard",
+  icon: (
+    <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+    </svg>
+  ),
+};
+
+// Resource items — each gets a searchable flyout (Task 4). `key` maps to the
+// entries list supplied by the layout via `navData`.
+const RESOURCE_ITEMS: {
+  key: keyof NavData;
+  href: string;
+  label: string;
+  icon: React.ReactNode;
+}[] = [
   {
-    href: "/dashboard",
-    label: "Deliverables",
+    key: "budget",
+    href: "/dashboard/budget",
+    label: "Budget",
     icon: (
       <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+        <path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
       </svg>
     ),
   },
   {
+    key: "clients",
     href: "/dashboard/clients",
     label: "Clients",
     icon: (
@@ -102,6 +123,7 @@ const NAV_ITEMS = [
     ),
   },
   {
+    key: "projects",
     href: "/dashboard/projects",
     label: "Projects",
     icon: (
@@ -111,6 +133,7 @@ const NAV_ITEMS = [
     ),
   },
   {
+    key: "proposals",
     href: "/dashboard/proposals",
     label: "Proposals",
     icon: (
@@ -120,6 +143,7 @@ const NAV_ITEMS = [
     ),
   },
   {
+    key: "brands",
     href: "/dashboard/brands",
     label: "Brand Guides",
     icon: (
@@ -130,14 +154,24 @@ const NAV_ITEMS = [
   },
 ];
 
+// Flyout entries per resource, resolved server-side in the dashboard layout.
+export type NavData = {
+  budget: FlyoutEntry[];
+  clients: FlyoutEntry[];
+  projects: FlyoutEntry[];
+  proposals: FlyoutEntry[];
+  brands: FlyoutEntry[];
+};
+
 type Props = {
   partner: PartnerConfig;
   user?: Session["user"];
   scopeCtx: ScopeContext;
+  navData: NavData;
   children: React.ReactNode;
 };
 
-export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
+export function DashboardShell({ partner, user, scopeCtx, navData, children }: Props) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -174,29 +208,39 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
       </div>
 
       {/* Nav */}
-      <nav className="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        {NAV_ITEMS.map((item) => {
-          const isActive =
-            item.href === "/dashboard"
-              ? pathname === "/dashboard"
-              : pathname.startsWith(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              onClick={closeSidebar}
-              style={{ color: "var(--brand-sidebar-text)" }}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-                isActive
-                  ? "bg-[var(--brand-sidebar-text)]/15"
-                  : "hover:bg-[var(--brand-sidebar-text)]/10"
-              }`}
-            >
-              <span className="text-[var(--brand-nav-icon)]">{item.icon}</span>
-              {item.label}
-            </Link>
-          );
-        })}
+      <nav className="flex-1 space-y-1 overflow-visible px-3 py-4">
+        {/* Top-level Dashboard link */}
+        <Link
+          href={DASHBOARD_ITEM.href}
+          onClick={closeSidebar}
+          style={{ color: "var(--brand-sidebar-text)" }}
+          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+            pathname === "/dashboard"
+              ? "bg-[var(--brand-sidebar-text)]/15"
+              : "hover:bg-[var(--brand-sidebar-text)]/10"
+          }`}
+        >
+          <span className="text-[var(--brand-nav-icon)]">{DASHBOARD_ITEM.icon}</span>
+          {DASHBOARD_ITEM.label}
+        </Link>
+
+        {/* Divider between Dashboard and resource group */}
+        <div
+          className="my-2 border-t"
+          style={{ borderColor: "color-mix(in srgb, var(--brand-sidebar-text) 15%, transparent)" }}
+        />
+
+        {/* Resource items with searchable flyouts */}
+        {RESOURCE_ITEMS.map((item) => (
+          <NavFlyout
+            key={item.href}
+            href={item.href}
+            label={item.label}
+            icon={item.icon}
+            entries={navData[item.key]}
+            onNavigate={closeSidebar}
+          />
+        ))}
       </nav>
 
       {/* User footer */}
