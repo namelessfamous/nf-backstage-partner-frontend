@@ -26,10 +26,12 @@ export async function GET(req: NextRequest) {
   const origin = host ? `${proto}://${host}` : req.nextUrl.origin;
 
   // After the central SSO session is killed, send the user back to this app's
-  // root. With both the local and SSO sessions gone, the app shows the
-  // logged-out landing / sign-in prompt.
+  // signed-out screen (NOT `/`, which auto-bounces into SSO and can silently
+  // re-authenticate the user). The `logged_out` flag tells /auth/signin to
+  // render a manual "Sign in" prompt instead of redirecting straight back into
+  // the nf-id SSO round-trip.
   const idLogout = new URL(NF_ID_LOGOUT_URL);
-  idLogout.searchParams.set("return", `${origin}/`);
+  idLogout.searchParams.set("return", `${origin}/auth/signin?logged_out=1`);
 
   const res = NextResponse.redirect(idLogout, { status: 302, headers: NO_CACHE });
 

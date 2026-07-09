@@ -8,6 +8,9 @@ type SearchParams = {
   id_token?: string;
   access?: string;
   error?: string;
+  /** Set by the logout flow so we show a manual sign-in prompt instead of
+   *  auto-bouncing straight back into the nf-id SSO round-trip. */
+  logged_out?: string;
 };
 
 export default async function SignInPage({
@@ -24,6 +27,32 @@ export default async function SignInPage({
   // to create the next-auth session
   if (params.id_token && params.access) {
     return <AutoSignIn idToken={params.id_token} access={params.access} />;
+  }
+
+  // Just signed out → show a clean "signed out" screen with a manual sign-in
+  // button. Auto-redirecting here would immediately re-enter SSO and (if the
+  // nf-id session lingers) silently log the user back in — the exact reason
+  // logout "didn't work".
+  if (params.logged_out) {
+    const ssoUrl = await buildSsoUrl(partner.clientId ?? NF_ID_CLIENT_ID);
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-[var(--background)] px-6">
+        <div className="max-w-md rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-10 text-center shadow-[0_24px_80px_rgba(15,23,42,0.08)]">
+          <h2 className="text-xl font-semibold text-[var(--brand-foreground)]">
+            You&rsquo;ve been signed out
+          </h2>
+          <p className="mt-3 text-sm text-[var(--brand-muted)]">
+            Your session has ended. Sign in again to return to the portal.
+          </p>
+          <a
+            href={ssoUrl}
+            className="mt-6 inline-block rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90"
+          >
+            Sign in with nf-id
+          </a>
+        </div>
+      </div>
+    );
   }
 
   // Show error state if SSO failed

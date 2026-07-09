@@ -1,5 +1,8 @@
 import Link from "next/link";
-import { apiList } from "@/lib/api";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { apiList, emptyOnError, SessionExpiredError } from "@/lib/api";
+import { buildReauthUrl } from "@/lib/reauth";
 import { getScopeContext } from "@/lib/scope";
 import type {
   BackstageDeliverable,
@@ -48,8 +51,21 @@ type ActivityItem = {
   whenLabel: string | null;
 };
 
+async function reauthRedirect(): Promise<never> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "partner.namfam.co";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  redirect(buildReauthUrl(`${proto}://${host}`, "/dashboard"));
+}
+
 export default async function DashboardPage() {
-  const scopeCtx = await getScopeContext();
+  let scopeCtx: Awaited<ReturnType<typeof getScopeContext>>;
+  try {
+    scopeCtx = await getScopeContext();
+  } catch (err) {
+    if (err instanceof SessionExpiredError) return reauthRedirect();
+    throw err;
+  }
   const { activeClientIds, active } = scopeCtx;
 
   // Build a scoped deliverables URL (backend filters server-side; we also
@@ -61,18 +77,27 @@ export default async function DashboardPage() {
     deliverablesPath += `?client=${encodeURIComponent(active.slug)}`;
   }
 
-  // Fetch the three resource sets in parallel; each degrades to [] on failure.
-  const [allDeliverables, allProjects, allProposals] = await Promise.all([
-    apiList<BackstageDeliverable>(deliverablesPath, { revalidate: 0 }).catch(
-      () => [] as BackstageDeliverable[],
-    ),
-    apiList<Project>("/api/v1/projects/", { revalidate: 0 }).catch(
-      () => [] as Project[],
-    ),
-    apiList<ProposalListItem>("/api/v1/proposals/", { revalidate: 0 }).catch(
-      () => [] as ProposalListItem[],
-    ),
-  ]);
+  // Fetch the three resource sets in parallel; each degrades to [] on failure
+  // (a lapsed session re-throws and redirects rather than painting zeros).
+  let allDeliverables: BackstageDeliverable[];
+  let allProjects: Project[];
+  let allProposals: ProposalListItem[];
+  try {
+    [allDeliverables, allProjects, allProposals] = await Promise.all([
+      apiList<BackstageDeliverable>(deliverablesPath, { revalidate: 0 }).catch(
+        emptyOnError<BackstageDeliverable>,
+      ),
+      apiList<Project>("/api/v1/projects/", { revalidate: 0 }).catch(
+        emptyOnError<Project>,
+      ),
+      apiList<ProposalListItem>("/api/v1/proposals/", { revalidate: 0 }).catch(
+        emptyOnError<ProposalListItem>,
+      ),
+    ]);
+  } catch (err) {
+    if (err instanceof SessionExpiredError) return reauthRedirect();
+    throw err;
+  }
 
   const inScopeClientId = (clientId?: string | null): boolean =>
     activeClientIds === null ||

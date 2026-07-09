@@ -21,6 +21,26 @@ function getJwtSecret(): Uint8Array {
   return new TextEncoder().encode(s);
 }
 
+/**
+ * Decode a JWT's `exp` claim (Unix seconds) without verifying the signature.
+ * The backstage access token is issued by the API; we only need its expiry to
+ * know when to force a silent re-auth. Returns 0 when unreadable (treated as
+ * already-expired by callers).
+ */
+function decodeJwtExp(token: string): number {
+  try {
+    const part = token.split(".")[1];
+    const json = JSON.parse(
+      Buffer.from(part.replace(/-/g, "+").replace(/_/g, "/"), "base64").toString(
+        "utf8",
+      ),
+    );
+    return typeof json.exp === "number" ? json.exp : 0;
+  } catch {
+    return 0;
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   session: { strategy: "jwt" },
@@ -59,9 +79,12 @@ export const authOptions: NextAuthOptions = {
   ],
   callbacks: {
     async jwt({ token, user }) {
-      // On first sign-in, copy the backstage access token into the JWT
+      // On first sign-in, copy the backstage access token into the JWT and
+      // record its expiry so the session can report when it has lapsed.
       if (user && "_accessToken" in user) {
-        token.accessToken = (user as NfUser)._accessToken;
+        const access = (user as NfUser)._accessToken;
+        token.accessToken = access;
+        token.accessTokenExp = decodeJwtExp(access);
         if (user.image) token.picture = user.image;
       }
       return token;
@@ -75,6 +98,13 @@ export const authOptions: NextAuthOptions = {
       }
       if (typeof token.accessToken === "string") {
         session.accessToken = token.accessToken;
+      }
+      if (typeof token.accessTokenExp === "number") {
+        session.accessTokenExp = token.accessTokenExp;
+        // 30s skew so we re-auth just *before* the API starts 401ing.
+        session.accessTokenExpired =
+          token.accessTokenExp > 0 &&
+          token.accessTokenExp * 1000 < Date.now() + 30_000;
       }
       return session;
     },

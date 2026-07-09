@@ -1,24 +1,58 @@
-import { getServerSession } from "next-auth";
+import { headers } from "next/headers";
+import { redirect } from "next/navigation";
+import { getServerSession, type Session } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { getPartnerContext } from "@/lib/partner-context";
 import { getScopeContext } from "@/lib/scope";
 import { DashboardShell, type NavData } from "@/components/dashboard/shell";
 import { buildNavData } from "@/lib/nav-data";
+import { SessionExpiredError } from "@/lib/api";
+import { buildReauthUrl } from "@/lib/reauth";
+
+/**
+ * Convert a lapsed-session throw into a redirect to nf-id re-auth. Handles the
+ * race where the token was valid at the middleware check but expired by the
+ * time these server-side fetches ran. Rethrows anything that is not a session
+ * expiry so real bugs still surface.
+ */
+async function reauthRedirect(): Promise<never> {
+  const h = await headers();
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "partner.namfam.co";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  redirect(buildReauthUrl(`${proto}://${host}`, "/dashboard"));
+}
 
 export default async function DashboardLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const [session, { partner }, scopeCtx] = await Promise.all([
-    getServerSession(authOptions),
-    getPartnerContext(),
-    getScopeContext(),
-  ]);
+  let session: Session | null;
+  let partner: Awaited<ReturnType<typeof getPartnerContext>>["partner"];
+  let scopeCtx: Awaited<ReturnType<typeof getScopeContext>>;
+  try {
+    const [s, pc, sc] = await Promise.all([
+      getServerSession(authOptions),
+      getPartnerContext(),
+      getScopeContext(),
+    ]);
+    session = s as Session | null;
+    partner = pc.partner;
+    scopeCtx = sc;
+  } catch (err) {
+    if (err instanceof SessionExpiredError) return reauthRedirect();
+    throw err;
+  }
 
   // Resource lists for the sidebar searchable flyouts, scoped to the active
   // partner/client. Failures degrade to empty lists (flyout shows "none in scope").
-  const navData: NavData = await buildNavData(scopeCtx);
+  let navData: NavData;
+  try {
+    navData = await buildNavData(scopeCtx);
+  } catch (err) {
+    if (err instanceof SessionExpiredError) return reauthRedirect();
+    throw err;
+  }
 
   return (
     <DashboardShell
