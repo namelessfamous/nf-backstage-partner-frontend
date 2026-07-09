@@ -46,4 +46,6 @@ export interface PoliticalFileRow {
   clientName?: string;
   columns: PoliticalColumn[];
   cells: Record<string, string>;
+  /** Raw file record, passed straight to the in-app file viewer. */
+  file: import("@/types/api").DeliverableFile;
 }

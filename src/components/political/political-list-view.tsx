@@ -1,7 +1,9 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import type { PoliticalFileRow, PoliticalColumn } from "@/lib/political-types";
+import type { DeliverableFile } from "@/types/api";
+import { DeliverableFileViewer } from "@/components/deliverables/file-viewer";
 
 /**
  * CSV-style list view for a single political view (walk / call / fundraising).
@@ -34,10 +36,12 @@ function ListGroup({
   columns,
   rows,
   viewLabel,
+  onOpen,
 }: {
   columns: PoliticalColumn[];
   rows: PoliticalFileRow[];
   viewLabel: string;
+  onOpen: (file: DeliverableFile) => void;
 }) {
   const csvHref = useMemo(() => {
     const csv = toCsv(columns, rows);
@@ -88,18 +92,14 @@ function ListGroup({
                 className="transition hover:bg-[var(--brand-surface-strong)]/50"
               >
                 <td className="px-6 py-4 font-medium text-[var(--brand-foreground)]">
-                  {row.allowDownload && row.url ? (
-                    <a
-                      href={row.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="text-[var(--brand-primary)] hover:underline"
-                    >
-                      {row.name}
-                    </a>
-                  ) : (
-                    row.name
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => onOpen(row.file)}
+                    className="text-left text-[var(--brand-primary)] hover:underline"
+                    title="Open file viewer"
+                  >
+                    {row.name}
+                  </button>
                   {row.projectName && (
                     <span className="block text-xs text-[var(--brand-muted)]">
                       {row.projectName}
@@ -149,6 +149,8 @@ export function PoliticalListView({
     return [...map.values()];
   }, [rows]);
 
+  const [viewerFile, setViewerFile] = useState<DeliverableFile | null>(null);
+
   if (rows.length === 0) {
     return (
       <div className="rounded-3xl border border-dashed border-[var(--brand-muted)]/25 bg-[var(--brand-surface)] px-8 py-16 text-center">
@@ -178,8 +180,17 @@ export function PoliticalListView({
           columns={g.columns}
           rows={g.rows}
           viewLabel={viewLabel}
+          onOpen={setViewerFile}
         />
       ))}
+
+      {viewerFile && (
+        <DeliverableFileViewer
+          file={viewerFile}
+          open={Boolean(viewerFile)}
+          onClose={() => setViewerFile(null)}
+        />
+      )}
     </div>
   );
 }
