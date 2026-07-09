@@ -174,19 +174,19 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-white/10 p-4">
+      <div className="border-t border-black/10 p-4">
         <div className="flex items-center gap-3">
           <UserAvatar user={user} tone="footer" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-white">
+            <p className="truncate text-sm font-medium text-black">
               {user?.name ?? "Partner user"}
             </p>
-            <p className="truncate text-xs text-white/60">{user?.email}</p>
+            <p className="truncate text-xs text-black/60">{user?.email}</p>
           </div>
           <button
             onClick={() => void fullSignOut()}
             title="Sign out"
-            className="rounded-lg p-1.5 text-white/60 transition hover:bg-white/10 hover:text-white"
+            className="rounded-lg p-1.5 text-black/60 transition hover:bg-black/10 hover:text-black"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
@@ -212,7 +212,7 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
         className={`fixed inset-y-0 left-0 z-30 w-64 transform transition-transform duration-200 ease-in-out lg:static lg:translate-x-0 ${
           sidebarOpen ? "translate-x-0" : "-translate-x-full"
         }`}
-        style={{ background: `linear-gradient(180deg, var(--brand-primary), var(--brand-secondary))` }}
+        style={{ background: `linear-gradient(180deg, var(--brand-sidebar-from), var(--brand-sidebar-to))` }}
       >
         {sidebarContent}
       </aside>

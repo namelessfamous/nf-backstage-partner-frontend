@@ -14,6 +14,13 @@ export type ThemePalette = {
   navIcon: string;
   /** App-wide page background (behind surfaces). */
   background: string;
+  /**
+   * Sidebar gradient stops. Kept intentionally LIGHT in every mode so the
+   * dark (`text-black`) nav links stay legible top-to-bottom on both light
+   * and dark themes.
+   */
+  sidebarFrom: string;
+  sidebarTo: string;
 };
 
 export type PartnerConfig = {
@@ -60,6 +67,9 @@ export const defaultPartnerConfig: PartnerConfig = {
       onPrimary: "#0a0a0b", // noir — text on acid lime (always dark)
       navIcon: "#7c3aed", // violet — nav icon accent, complements acid lime
       background: "#0a0a0b", // noir
+      // Light sidebar in dark mode too, so black nav text stays readable.
+      sidebarFrom: "#c8f53c", // acid lime signature
+      sidebarTo: "#eef0e3", // soft cream-white
     },
     // Nameless Famous — light counterpart (cream paper, noir ink, acid accent)
     light: {
@@ -73,6 +83,8 @@ export const defaultPartnerConfig: PartnerConfig = {
       onPrimary: "#0a0a0b", // dark text on acid lime (always dark)
       navIcon: "#7c3aed", // violet nav accent
       background: "#f5f0e8", // cream paper
+      sidebarFrom: "#c8f53c", // acid lime signature
+      sidebarTo: "#f5f0e8", // cream paper
     },
   },
 };
@@ -101,6 +113,8 @@ export const partnerConfigs: PartnerConfig[] = [
         onPrimary: "#292524", // dark text on the gold primary
         navIcon: "#292524", // dark nav icons on the gold gradient
         background: "#fffbeb",
+        sidebarFrom: "#fcd34d", // gold
+        sidebarTo: "#fffdf6", // near-white
       },
       dark: {
         primary: "#eab308", // brighter gold for dark bg
@@ -111,8 +125,10 @@ export const partnerConfigs: PartnerConfig[] = [
         foreground: "#f7f0df",
         muted: "#b8a97f",
         onPrimary: "#292524", // dark text on gold
-        navIcon: "#fcd34d",
+        navIcon: "#292524", // dark nav icons so black nav text pairs cleanly
         background: "#14100a",
+        sidebarFrom: "#fcd34d", // gold
+        sidebarTo: "#fef3c7", // pale gold
       },
     },
   },

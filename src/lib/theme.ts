@@ -17,6 +17,8 @@ function paletteToVars(p: ThemePalette): string {
     `--brand-muted:${p.muted};`,
     `--brand-on-primary:${p.onPrimary};`,
     `--brand-nav-icon:${p.navIcon};`,
+    `--brand-sidebar-from:${p.sidebarFrom};`,
+    `--brand-sidebar-to:${p.sidebarTo};`,
   ].join("");
 }
 
