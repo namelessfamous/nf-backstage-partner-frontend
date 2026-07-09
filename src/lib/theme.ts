@@ -19,6 +19,7 @@ function paletteToVars(p: ThemePalette): string {
     `--brand-nav-icon:${p.navIcon};`,
     `--brand-sidebar-from:${p.sidebarFrom};`,
     `--brand-sidebar-to:${p.sidebarTo};`,
+    `--brand-sidebar-text:${p.sidebarText ?? p.foreground};`,
   ].join("");
 }
 

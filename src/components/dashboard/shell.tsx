@@ -164,7 +164,12 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
             className="h-8 w-auto"
           />
         ) : (
-          <span className="text-lg font-semibold text-black">{partner.displayName}</span>
+          <span
+            className="text-lg font-semibold"
+            style={{ color: "var(--brand-sidebar-text)" }}
+          >
+            {partner.displayName}
+          </span>
         )}
       </div>
 
@@ -180,11 +185,11 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
               key={item.href}
               href={item.href}
               onClick={closeSidebar}
-              style={{ color: "#000" }}
-              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium !text-black transition ${
+              style={{ color: "var(--brand-sidebar-text)" }}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
                 isActive
-                  ? "bg-black/10"
-                  : "hover:bg-black/5"
+                  ? "bg-[var(--brand-sidebar-text)]/15"
+                  : "hover:bg-[var(--brand-sidebar-text)]/10"
               }`}
             >
               <span className="text-[var(--brand-nav-icon)]">{item.icon}</span>
@@ -195,19 +200,31 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
       </nav>
 
       {/* User footer */}
-      <div className="border-t border-black/10 p-4">
+      <div
+        className="border-t p-4"
+        style={{ borderColor: "color-mix(in srgb, var(--brand-sidebar-text) 15%, transparent)" }}
+      >
         <div className="flex items-center gap-3">
           <UserAvatar user={user} tone="footer" />
           <div className="min-w-0 flex-1">
-            <p className="truncate text-sm font-medium text-black">
+            <p
+              className="truncate text-sm font-medium"
+              style={{ color: "var(--brand-sidebar-text)" }}
+            >
               {user?.name ?? "Partner user"}
             </p>
-            <p className="truncate text-xs text-black/60">{user?.email}</p>
+            <p
+              className="truncate text-xs"
+              style={{ color: "color-mix(in srgb, var(--brand-sidebar-text) 60%, transparent)" }}
+            >
+              {user?.email}
+            </p>
           </div>
           <button
             onClick={() => void fullSignOut()}
             title="Sign out"
-            className="rounded-lg p-1.5 text-black/60 transition hover:bg-black/10 hover:text-black"
+            style={{ color: "color-mix(in srgb, var(--brand-sidebar-text) 60%, transparent)" }}
+            className="rounded-lg p-1.5 transition hover:bg-[var(--brand-sidebar-text)]/10"
           >
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />

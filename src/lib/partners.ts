@@ -15,12 +15,17 @@ export type ThemePalette = {
   /** App-wide page background (behind surfaces). */
   background: string;
   /**
-   * Sidebar gradient stops. Kept intentionally LIGHT in every mode so the
-   * dark (`text-black`) nav links stay legible top-to-bottom on both light
-   * and dark themes.
+   * Sidebar gradient stops. Signature acid-lime (top) fading to the mode's
+   * base (black in dark, white in light).
    */
   sidebarFrom: string;
   sidebarTo: string;
+  /**
+   * Foreground for sidebar nav/footer text. Must contrast the *bottom* of the
+   * gradient (where most nav links + the footer sit): light in dark mode
+   * (black bottom), dark in light mode (white bottom).
+   */
+  sidebarText?: string;
 };
 
 export type PartnerConfig = {
@@ -55,36 +60,37 @@ export const defaultPartnerConfig: PartnerConfig = {
   apiBaseUrl: DEFAULT_BACKSTAGE_API_URL,
   defaultMode: "dark",
   theme: {
-    // Nameless Famous — brutNOIR brand system (dark)
+    // Nameless Famous — namelessfamous.com brand (dark mode)
     dark: {
-      primary: "#c8f53c", // acid — CTAs, active states
-      secondary: "#22222a", // noirSurface
-      accent: "#c8f53c", // acid signature accent
-      surface: "#111114", // noirLight — card backgrounds
-      surfaceStrong: "#22222a", // noirSurface — callout/elevated
-      foreground: "#f5f0e8", // cream — primary text
-      muted: "#8a8577", // creamMuted — tertiary/labels
-      onPrimary: "#0a0a0b", // noir — text on acid lime (always dark)
-      navIcon: "#7c3aed", // violet — nav icon accent, complements acid lime
-      background: "#0a0a0b", // noir
-      // Light sidebar in dark mode too, so black nav text stays readable.
-      sidebarFrom: "#c8f53c", // acid lime signature
-      sidebarTo: "#eef0e3", // soft cream-white
+      primary: "#DDDBDE", // light charcoal — reads on dark background
+      secondary: "#22222a", // dark surface
+      accent: "#019458", // NF green — dark mode accent
+      surface: "#1a1a1f", // dark charcoal — card backgrounds
+      surfaceStrong: "#22222a", // elevated surface
+      foreground: "#DDDBDE", // primary text on dark
+      muted: "#8a8587", // muted text
+      onPrimary: "#111111", // dark text on light primary
+      navIcon: "#019458", // green nav icon accent
+      background: "#050505", // noir atmospheric background
+      sidebarFrom: "#c8f53c", // acid lime signature (top)
+      sidebarTo: "#0a0a0b", // noir black (bottom)
+      sidebarText: "#f5f5f4", // light ink — legible over the black bottom
     },
-    // Nameless Famous — light counterpart (cream paper, noir ink, acid accent)
+    // Nameless Famous — namelessfamous.com brand (light mode)
     light: {
-      primary: "#c8f53c", // acid stays the signature
+      primary: "#3B373B", // dark charcoal — CTAs, active states
       secondary: "#e7e2d6", // warm paper edge
-      accent: "#a4c400", // slightly deeper acid so it reads on cream
+      accent: "#f54a00", // NF orange — light mode accent
       surface: "#ffffff", // card backgrounds
-      surfaceStrong: "#f1ece0", // callout/elevated on cream
-      foreground: "#0a0a0b", // noir ink
+      surfaceStrong: "#ece7dd", // callout/elevated on cream
+      foreground: "#111111", // near-black ink
       muted: "#6b675c", // muted ink
-      onPrimary: "#0a0a0b", // dark text on acid lime (always dark)
-      navIcon: "#7c3aed", // violet nav accent
+      onPrimary: "#DDDBDE", // light text on dark charcoal primary
+      navIcon: "#f54a00", // orange nav icon accent
       background: "#f5f0e8", // cream paper
-      sidebarFrom: "#c8f53c", // acid lime signature
-      sidebarTo: "#f5f0e8", // cream paper
+      sidebarFrom: "#c8f53c", // acid lime signature (top)
+      sidebarTo: "#ffffff", // white (bottom)
+      sidebarText: "#111111", // noir ink — legible over the white bottom
     },
   },
 };

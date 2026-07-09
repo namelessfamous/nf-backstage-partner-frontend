@@ -19,8 +19,9 @@
   --brand-muted: #6b675c; /* muted ink */
   --brand-on-primary: #DDDBDE; /* light text on dark charcoal primary */
   --brand-nav-icon: #f54a00; /* orange nav icon accent */
-  --brand-sidebar-from: #DDDBDE; /* light sidebar top */
-  --brand-sidebar-to: #f5f0e8; /* cream paper bottom */
+  --brand-sidebar-from: #c8f53c; /* acid lime signature (top) */
+  --brand-sidebar-to: #ffffff; /* white (bottom) */
+  --brand-sidebar-text: #111111; /* noir ink over white bottom */
 }
 
 @theme inline {
