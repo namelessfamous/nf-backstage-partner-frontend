@@ -6,28 +6,29 @@
  * (see src/lib/theme.ts + src/app/layout.tsx). The values below are a safe
  * brutNOIR fallback in case the injected block is unavailable.
  */
+/* Nameless Famous — namelessfamous.com brand (light mode fallback) */
 :root {
-  --background: #0a0a0b; /* noir */
-  --foreground: #f5f0e8; /* cream */
-  --brand-primary: #c8f53c; /* acid */
-  --brand-secondary: #22222a; /* noirSurface */
-  --brand-accent: #c8f53c; /* acid */
-  --brand-surface: #111114; /* noirLight */
-  --brand-surface-strong: #22222a; /* noirSurface */
-  --brand-foreground: #f5f0e8; /* cream */
-  --brand-muted: #8a8577; /* creamMuted */
-  --brand-on-primary: #0a0a0b; /* noir — text on acid lime, always dark */
-  --brand-nav-icon: #7c3aed; /* violet — nav icon accent */
-  --brand-sidebar-from: #c8f53c; /* acid lime — sidebar gradient top */
-  --brand-sidebar-to: #eef0e3; /* soft cream — sidebar gradient bottom */
+  --background: #f5f0e8; /* paper/cream */
+  --foreground: #111111; /* near-black ink */
+  --brand-primary: #3B373B; /* dark charcoal */
+  --brand-secondary: #e7e2d6; /* warm paper edge */
+  --brand-accent: #f54a00; /* NF orange */
+  --brand-surface: #ffffff; /* card backgrounds */
+  --brand-surface-strong: #ece7dd; /* callout/elevated on cream */
+  --brand-foreground: #111111; /* noir ink */
+  --brand-muted: #6b675c; /* muted ink */
+  --brand-on-primary: #DDDBDE; /* light text on dark charcoal primary */
+  --brand-nav-icon: #f54a00; /* orange nav icon accent */
+  --brand-sidebar-from: #DDDBDE; /* light sidebar top */
+  --brand-sidebar-to: #f5f0e8; /* cream paper bottom */
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-dm-sans), "DM Sans", "Segoe UI", Arial, Helvetica, sans-serif;
-  --font-serif: var(--font-dm-serif), "DM Serif Display", Georgia, serif;
-  --font-mono: var(--font-dm-mono), "DM Mono", "SFMono-Regular", Consolas, Menlo, monospace;
+  --font-sans: "obviously-variable", sans-serif;
+  --font-serif: "obviously-variable", sans-serif;
+  --font-mono: "space-mono", monospace;
 }
 
 /* Smooth cross-fade when the light/dark switcher flips the palette. */
@@ -52,13 +53,18 @@ html {
 body {
   background: var(--background);
   color: var(--brand-foreground);
-  font-family: var(--font-sans);
+  font-family: "space-mono", monospace;
   margin: 0;
 }
 
 h1, h2, h3 {
-  font-family: var(--font-serif);
-  font-weight: 400;
+  font-family: "obviously-variable", sans-serif;
+  font-variation-settings: 'wdth' 100, 'wght' 800, 'ital' 0;
+}
+
+h4, h5, h6 {
+  font-family: "obviously-variable", sans-serif;
+  font-variation-settings: 'wdth' 150, 'wght' 500, 'ital' 0;
 }
 
 a {

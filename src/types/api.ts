@@ -240,6 +240,62 @@ export interface ProposalDetail {
   updated_at: string;
 }
 
+// ── Brands / Brand Guide ─────────────────────────────────────────────────────
+// Mirrors apps.brands serializers on the backstage API.
+//   Brand → typography[] + colors{role → { base, tones, contrast }}
+
+export type BrandFontType = "heading" | "subheading" | "body" | "accent" | string;
+
+export interface BrandFont {
+  type: BrandFontType;
+  family: string;
+  source?: "google" | "adobe" | "custom" | string;
+  weight?: string;
+  style?: string;
+  variable?: boolean;
+  variable_options?: { weight_range?: string } | null;
+  google_import_url?: string | null;
+  adobe_project_id?: string | null;
+}
+
+export interface BrandColorRole {
+  base: string;
+  tones?: Record<string, string>;
+  contrast?: Record<string, string>;
+}
+
+export type BrandColors = Record<string, BrandColorRole>;
+
+/** List shape — GET /api/v1/brands/ (BrandListSerializer) */
+export interface BrandListItem {
+  id: string;
+  name: string;
+  slug: string;
+  client?: string | null;
+  client_name?: string;
+  logo_url?: string;
+  tagline?: string;
+  created_at: string;
+}
+
+/** Detail shape — GET /api/v1/brands/<id>/ or /by-slug/<slug>/ (BrandSerializer) */
+export interface BrandDetail {
+  id: string;
+  name: string;
+  slug: string;
+  typography: BrandFont[];
+  colors: BrandColors;
+  logo_url?: string;
+  tagline?: string;
+  brand_voice?: string;
+  meta?: Record<string, unknown>;
+  client?: string | null;
+  client_name?: string;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PaginatedResponse<T> {
   count: number;
   next?: string | null;

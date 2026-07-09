@@ -1,30 +1,7 @@
 import type { Metadata } from "next";
-import { DM_Sans, DM_Serif_Display, DM_Mono } from "next/font/google";
 import { getPartnerContext } from "@/lib/partner-context";
 import { buildThemeCss, themeInitScript } from "@/lib/theme";
 import "./globals.css";
-
-// Nameless Famous — brutNOIR typography
-const dmSans = DM_Sans({
-  subsets: ["latin"],
-  weight: ["400", "500", "700"],
-  variable: "--font-dm-sans",
-  display: "swap",
-});
-
-const dmSerifDisplay = DM_Serif_Display({
-  subsets: ["latin"],
-  weight: ["400"],
-  variable: "--font-dm-serif",
-  display: "swap",
-});
-
-const dmMono = DM_Mono({
-  subsets: ["latin"],
-  weight: ["400", "500"],
-  variable: "--font-dm-mono",
-  display: "swap",
-});
 
 export async function generateMetadata(): Promise<Metadata> {
   const { partner } = await getPartnerContext();
@@ -54,9 +31,11 @@ export default async function RootLayout({
       // keeps SSR markup deterministic.
       data-theme={partner.defaultMode}
       suppressHydrationWarning
-      className={`h-full antialiased ${dmSans.variable} ${dmSerifDisplay.variable} ${dmMono.variable}`}
+      className="h-full antialiased"
     >
       <head>
+        {/* Nameless Famous — Typekit: obviously-variable + space-mono */}
+        <link rel="stylesheet" href="https://use.typekit.net/xhf6mln.css" />
         {/* Partner-scoped palettes bound to html[data-theme]. */}
         <style dangerouslySetInnerHTML={{ __html: buildThemeCss(partner) }} />
         {/* Resolve stored/default theme before first paint to avoid FOUC. */}
