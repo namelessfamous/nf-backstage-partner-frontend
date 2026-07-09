@@ -172,4 +172,29 @@ a {
   article, li {
     break-inside: avoid;
   }
+
+  /* ── Proposals: print the active version cleanly ── */
+  .proposal-print-hide,
+  .proposal-version-tabs,
+  .proposal-toolbar-actions {
+    display: none !important;
+  }
+
+  .proposal-print-header {
+    display: block !important;
+    margin-bottom: 1rem;
+    color: #111 !important;
+  }
+
+  .proposal-detail-page .proposal-section,
+  .proposal-detail-page .proposal-version-total {
+    border-color: #ddd !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  .proposal-detail-page table {
+    color: #111 !important;
+  }
 }

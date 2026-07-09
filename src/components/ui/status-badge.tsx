@@ -18,6 +18,13 @@ const STATUS_MAP: Record<string, { label: string; classes: string }> = {
   in_review: { label: "In Review", classes: "bg-violet-50 text-violet-700" },
   delivered: { label: "Delivered", classes: "bg-emerald-50 text-emerald-700" },
   cancelled: { label: "Cancelled", classes: "bg-red-50 text-red-600" },
+  // Proposal statuses (backend uses dotted keys)
+  "proposal.draft": { label: "Draft", classes: "bg-slate-100 text-slate-600" },
+  "proposal.ready": { label: "Ready", classes: "bg-emerald-50 text-emerald-700" },
+  "proposal.revision_request": { label: "Revision Requested", classes: "bg-amber-50 text-amber-700" },
+  "proposal.approved": { label: "Approved", classes: "bg-blue-50 text-blue-700" },
+  "proposal.void": { label: "Void", classes: "bg-slate-100 text-slate-500" },
+  "proposal.cancelled": { label: "Cancelled", classes: "bg-red-50 text-red-600" },
 };
 
 export function StatusBadge({ status }: { status: Status }) {

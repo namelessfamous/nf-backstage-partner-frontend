@@ -160,6 +160,86 @@ export interface ClientUser {
   role: string;
 }
 
+// ── Proposals ───────────────────────────────────────────────────────────────
+// Mirrors apps.proposals serializers on the backstage API.
+//   Proposal → versions[] → sections[] → line_items[]
+
+export type ProposalStatus =
+  | "proposal.draft"
+  | "proposal.ready"
+  | "proposal.revision_request"
+  | "proposal.approved"
+  | "proposal.void"
+  | "proposal.cancelled";
+
+export interface ProposalLineItem {
+  id: string;
+  section: string;
+  description: string;
+  quantity: string; // DecimalField serialized as string
+  unit: string;
+  unit_cost: string;
+  total: string;
+  notes: string;
+  order: number;
+  approved: boolean;
+}
+
+export interface ProposalSection {
+  id: string;
+  version: string;
+  name: string;
+  order: number;
+  subtotal: string;
+  line_items: ProposalLineItem[];
+}
+
+export interface ProposalVersion {
+  id: string;
+  proposal: string;
+  name: string;
+  order: number;
+  total: string;
+  is_approved: boolean;
+  sections: ProposalSection[];
+}
+
+/** List shape — GET /api/v1/proposals/ (ProposalListSerializer) */
+export interface ProposalListItem {
+  id: string;
+  name: string;
+  client?: string | null;
+  client_name?: string;
+  project?: string | null;
+  project_name?: string;
+  lead?: string | null;
+  lead_name?: string;
+  status: ProposalStatus | string;
+  version_count: number;
+  created_at: string;
+}
+
+/** Detail shape — GET /api/v1/proposals/<id>/ (ProposalSerializer) */
+export interface ProposalDetail {
+  id: string;
+  client?: string | null;
+  client_name?: string;
+  project?: string | null;
+  project_name?: string;
+  lead?: string | null;
+  lead_name?: string;
+  name: string;
+  status: ProposalStatus | string;
+  notes: string;
+  versions: ProposalVersion[];
+  version_count: number;
+  share_enabled: boolean;
+  share_password: string;
+  created_by?: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface PaginatedResponse<T> {
   count: number;
   next?: string | null;
