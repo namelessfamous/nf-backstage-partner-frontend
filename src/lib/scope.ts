@@ -33,6 +33,13 @@ export type ScopeContext = {
   /** True when the logged-in user is admin or super_admin. */
   isAdmin: boolean;
   /**
+   * Set for a non-admin user whose access resolves to exactly one partner.
+   * When present, the scope selector should present that partner as the
+   * top-level "all my clients" option and only list that partner's clients —
+   * no global "All Scopes" and no separate "Partners" section.
+   */
+  singlePartner: Partner | null;
+  /**
    * Convenience: the set of client UUIDs that fall within the active scope.
    * null → no filter (show everything).
    * [] → partner scope but partner has no clients yet.
@@ -148,9 +155,20 @@ export async function getScopeContext(): Promise<ScopeContext> {
     active = { type: "all" };
   }
 
+  // A non-admin user whose access resolves to exactly one partner gets a
+  // partner-scoped selector (their clients only). Admins and multi-partner
+  // users keep the full three-tier selector.
+  const singlePartner =
+    !isAdmin && partners.length === 1 ? partners[0] : null;
+
   // Show selector if admin OR if there are multiple scopes to switch between.
+  // For a single-partner user, show it whenever that partner has >1 client
+  // (so they can drill into an individual client) — the partner itself is the
+  // "all" default, so a lone client wouldn't offer a meaningful choice.
   const totalScopes = partners.length + clients.length;
-  const showSelector = isAdmin || totalScopes > 1;
+  const showSelector = singlePartner
+    ? clients.filter((c) => c.partner === singlePartner.id).length > 1
+    : isAdmin || totalScopes > 1;
 
   // Pre-compute convenience fields for pages.
   let activeClientIds: string[] | null = null;
@@ -169,6 +187,7 @@ export async function getScopeContext(): Promise<ScopeContext> {
     clients,
     showSelector,
     isAdmin,
+    singlePartner,
     activeClientIds,
     activeClientSlug,
   };

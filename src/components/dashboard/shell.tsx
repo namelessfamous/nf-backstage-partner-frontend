@@ -349,6 +349,7 @@ export function DashboardShell({ partner, user, scopeCtx, navData, children }: P
               active={scopeCtx.active}
               partners={scopeCtx.partners}
               clients={scopeCtx.clients}
+              singlePartner={scopeCtx.singlePartner}
             />
           )}
 

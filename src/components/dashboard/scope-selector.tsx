@@ -9,9 +9,20 @@ type Props = {
   active: ScopeValue;
   partners: Partner[];
   clients: Client[];
+  /**
+   * When set, render a partner-scoped selector: the partner is the top-level
+   * "all my clients" option and only that partner's clients are listed.
+   * (Non-admin single-partner users.)
+   */
+  singlePartner?: Partner | null;
 };
 
-export function ScopeSelector({ active, partners, clients }: Props) {
+export function ScopeSelector({
+  active,
+  partners,
+  clients,
+  singlePartner,
+}: Props) {
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
@@ -27,14 +38,33 @@ export function ScopeSelector({ active, partners, clients }: Props) {
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
 
+  // Partner-scoped users see "All clients" (their partner) as the default
+  // label rather than the global "All Scopes".
+  const allLabel = singlePartner ? "All clients" : "All Scopes";
+
   const activeName =
     active.type === "all"
-      ? "All Scopes"
+      ? allLabel
       : active.type === "partner"
-        ? active.name
+        ? singlePartner
+          ? "All clients"
+          : active.name
         : active.type === "client"
           ? active.name
-          : "All Scopes";
+          : allLabel;
+
+  // For a single-partner user, only their partner's clients are switchable.
+  const scopedClients = singlePartner
+    ? clients.filter((c) => c.partner === singlePartner.id)
+    : clients;
+
+  // The partner itself is the "all my clients" selection for these users.
+  const partnerScopeValue = singlePartner
+    ? `partner:${singlePartner.slug}`
+    : "all";
+  const partnerScopeIsActive = singlePartner
+    ? active.type === "partner" && active.slug === singlePartner.slug
+    : active.type === "all";
 
   async function selectScope(value: string) {
     setOpen(false);
@@ -113,20 +143,24 @@ export function ScopeSelector({ active, partners, clients }: Props) {
             role="listbox"
             className="absolute right-0 z-20 mt-2 w-60 overflow-hidden rounded-2xl border border-black/10 bg-[var(--brand-surface)] text-[var(--brand-foreground)] shadow-xl"
           >
-            {/* All */}
+            {/* Top-level "all" option.
+                For single-partner users this selects their partner (all clients);
+                for admins/multi-scope it selects the global "All Scopes". */}
             <div className="p-1.5">
               <button
                 role="option"
-                aria-selected={active.type === "all"}
-                onClick={() => selectScope("all")}
+                aria-selected={partnerScopeIsActive}
+                onClick={() => selectScope(partnerScopeValue)}
                 className={`w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-[var(--brand-surface-strong)]
-                  ${active.type === "all" ? "font-semibold text-[var(--brand-primary)]" : "text-[var(--brand-foreground)]"}`}
+                  ${partnerScopeIsActive ? "font-semibold text-[var(--brand-primary)]" : "text-[var(--brand-foreground)]"}`}
               >
-                All Scopes
+                {allLabel}
               </button>
             </div>
 
-            {partners.length > 0 && (
+            {/* Partners section — hidden for single-partner users (their partner
+                is already the "All clients" option above). */}
+            {!singlePartner && partners.length > 0 && (
               <div className="border-t border-black/10 p-1.5">
                 <p className="mb-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-muted)]">
                   Partners
@@ -146,12 +180,12 @@ export function ScopeSelector({ active, partners, clients }: Props) {
               </div>
             )}
 
-            {clients.length > 0 && (
+            {scopedClients.length > 0 && (
               <div className="border-t border-black/10 p-1.5">
                 <p className="mb-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-muted)]">
-                  Clients
+                  {singlePartner ? "Your clients" : "Clients"}
                 </p>
-                {clients.map((c) => (
+                {scopedClients.map((c) => (
                   <button
                     key={c.id}
                     role="option"
@@ -161,7 +195,7 @@ export function ScopeSelector({ active, partners, clients }: Props) {
                       ${isActiveScope(`client:${c.slug}`) ? "font-semibold text-[var(--brand-primary)]" : "text-[var(--brand-foreground)]"}`}
                   >
                     <span>{c.name}</span>
-                    {c.partner_name && (
+                    {!singlePartner && c.partner_name && (
                       <span className="ml-2 shrink-0 text-[11px] text-[var(--brand-muted)]">
                         {c.partner_name}
                       </span>
