@@ -7,6 +7,7 @@ import type {
   Project,
   ProposalListItem,
   BrandListItem,
+  BackstageDeliverable,
 } from "@/types/api";
 
 /**
@@ -18,13 +19,28 @@ import type {
  * single failing endpoint never blanks the whole sidebar.
  */
 export async function buildNavData(scopeCtx: ScopeContext): Promise<NavData> {
-  const { activeClientIds } = scopeCtx;
+  const { activeClientIds, active } = scopeCtx;
 
-  const [clients, projects, proposals, brands] = await Promise.all([
-    apiList<Client>("/api/v1/clients/", { revalidate: 0 }),
-    apiList<Project>("/api/v1/projects/", { revalidate: 0 }),
-    apiList<ProposalListItem>("/api/v1/proposals/", { revalidate: 0 }),
-    apiList<BrandListItem>("/api/v1/brands/", { revalidate: 0 }),
+  // Scoped deliverables URL (mirrors the deliverables page/dashboard).
+  let deliverablesPath = "/api/v1/deliverables/";
+  if (active.type === "partner") {
+    deliverablesPath += `?partner=${encodeURIComponent(active.slug)}`;
+  } else if (active.type === "client") {
+    deliverablesPath += `?client=${encodeURIComponent(active.slug)}`;
+  }
+
+  const [deliverables, clients, projects, proposals, brands] = await Promise.all([
+    apiList<BackstageDeliverable>(deliverablesPath, { revalidate: 0 }).catch(
+      () => [] as BackstageDeliverable[],
+    ),
+    apiList<Client>("/api/v1/clients/", { revalidate: 0 }).catch(() => [] as Client[]),
+    apiList<Project>("/api/v1/projects/", { revalidate: 0 }).catch(() => [] as Project[]),
+    apiList<ProposalListItem>("/api/v1/proposals/", { revalidate: 0 }).catch(
+      () => [] as ProposalListItem[],
+    ),
+    apiList<BrandListItem>("/api/v1/brands/", { revalidate: 0 }).catch(
+      () => [] as BrandListItem[],
+    ),
   ]);
 
   // Scope helpers. activeClientIds === null → "all" scope, no filtering.
@@ -47,7 +63,18 @@ export async function buildNavData(scopeCtx: ScopeContext): Promise<NavData> {
 
   const scopedBrands = brands.filter((b) => inScopeClientId(b.client));
 
+  const scopedDeliverables =
+    activeClientIds === null
+      ? deliverables
+      : deliverables.filter((d) => inScopeClientId(d.client_id));
+
   return {
+    deliverables: scopedDeliverables.map((d) => ({
+      href: `/dashboard/deliverables/${d.id}`,
+      label: d.name,
+      sub: d.project_name ?? d.client_name ?? undefined,
+    })),
+
     // Budget flyout mirrors approved proposals — one entry per proposal that
     // has approved line items (kept simple here: any non-draft/void proposal).
     budget: scopedProposals

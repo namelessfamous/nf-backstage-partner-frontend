@@ -17,6 +17,7 @@ import type { PartnerConfig } from "@/lib/partners";
 
 export function DashboardFooter({ partner }: { partner: PartnerConfig }) {
   const supportEmail = partner.supportEmail;
+  const isPartner = partner.key !== "default";
   const requestSubject = encodeURIComponent(
     `[${partner.displayName}] New request`,
   );
@@ -34,16 +35,29 @@ export function DashboardFooter({ partner }: { partner: PartnerConfig }) {
         <div className="flex items-center gap-3">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src="/nf-icon-composed.svg"
+            src={isPartner && partner.branding?.icon ? partner.branding.icon : "/nf-icon-composed.svg"}
             alt={partner.displayName}
             width={28}
             height={28}
             className="h-7 w-7 shrink-0"
           />
           <div className="leading-tight">
-            <p className="text-sm font-semibold text-[var(--brand-foreground)]">
-              {partner.displayName}
-            </p>
+            {isPartner ? (
+              <p className="flex flex-wrap items-center gap-1.5 text-sm font-semibold text-[var(--brand-foreground)]">
+                {partner.displayName}
+                <span className="text-[var(--brand-muted)]">— powered by</span>
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="/namelessfamous-logo.svg"
+                  alt="Nameless Famous"
+                  className="h-4 w-auto opacity-80"
+                />
+              </p>
+            ) : (
+              <p className="text-sm font-semibold text-[var(--brand-foreground)]">
+                {partner.displayName}
+              </p>
+            )}
             <p className="text-xs text-[var(--brand-muted)]">Partner Portal</p>
           </div>
         </div>

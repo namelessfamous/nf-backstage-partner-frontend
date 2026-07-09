@@ -56,15 +56,18 @@ function UserAvatar({
   );
 }
 
-// Composed NF mark used in the header (acid-lime tile + noir glyph).
+// Header brand mark.
+//
+// Default (NF) site  → composed NF tile only.
+// Partner site       → partner icon/name + "powered by" NF wordmark lockup.
 function NfIcon({ partner }: { partner: PartnerConfig }) {
-  const icon =
-    partner.key === "default" ? "/nf-icon-composed.svg" : partner.branding?.icon;
-  if (icon) {
+  const isPartner = partner.key !== "default";
+
+  if (!isPartner) {
     return (
       // eslint-disable-next-line @next/next/no-img-element
       <img
-        src={icon}
+        src="/nf-icon-composed.svg"
         alt={partner.displayName}
         width={32}
         height={32}
@@ -72,9 +75,43 @@ function NfIcon({ partner }: { partner: PartnerConfig }) {
       />
     );
   }
+
+  // Partner mark: their icon (or name chip) + "powered by Nameless Famous".
   return (
-    <span className="rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
-      {partner.displayName}
+    <span className="flex items-center gap-2">
+      {partner.branding?.icon ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={partner.branding.icon}
+          alt={partner.displayName}
+          width={32}
+          height={32}
+          className="h-8 w-8"
+        />
+      ) : (
+        <span className="rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
+          {partner.displayName}
+        </span>
+      )}
+      <PoweredByNf className="hidden md:flex" />
+    </span>
+  );
+}
+
+// "powered by" + Nameless Famous default wordmark. Uses the shared public
+// wordmark asset (namelessfamous-logo.svg) so it always matches the NF brand.
+function PoweredByNf({ className = "" }: { className?: string }) {
+  return (
+    <span className={`items-center gap-1.5 ${className}`}>
+      <span className="text-[10px] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+        powered by
+      </span>
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src="/namelessfamous-logo.svg"
+        alt="Nameless Famous"
+        className="h-4 w-auto opacity-80"
+      />
     </span>
   );
 }
@@ -98,6 +135,16 @@ const RESOURCE_ITEMS: {
   label: string;
   icon: React.ReactNode;
 }[] = [
+  {
+    key: "deliverables",
+    href: "/dashboard/deliverables",
+    label: "Deliverables",
+    icon: (
+      <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4" />
+      </svg>
+    ),
+  },
   {
     key: "budget",
     href: "/dashboard/budget",
@@ -152,6 +199,7 @@ const RESOURCE_ITEMS: {
 
 // Flyout entries per resource, resolved server-side in the dashboard layout.
 export type NavData = {
+  deliverables: FlyoutEntry[];
   budget: FlyoutEntry[];
   clients: FlyoutEntry[];
   projects: FlyoutEntry[];

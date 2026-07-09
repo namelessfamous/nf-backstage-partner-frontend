@@ -1,29 +1,35 @@
-import { marked } from "marked";
+import Link from "next/link";
 import { apiList } from "@/lib/api";
 import { getScopeContext } from "@/lib/scope";
-import type { BackstageDeliverable } from "@/types/api";
+import type {
+  BackstageDeliverable,
+  Project,
+  ProposalListItem,
+} from "@/types/api";
 import { StatsCard } from "@/components/ui/stats-card";
-import {
-  DeliverablesViewer,
-  type DeliverableItemView,
-} from "@/components/deliverables/deliverables-viewer";
+import { StatusBadge } from "@/components/ui/status-badge";
+import { EmptyState } from "@/components/ui/empty-state";
 
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null;
-  return new Date(`${iso}T00:00:00`).toLocaleDateString("en-US", {
+  // Accept both date-only (YYYY-MM-DD) and full ISO timestamps.
+  const d = iso.length <= 10 ? new Date(`${iso}T00:00:00`) : new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return d.toLocaleDateString("en-US", {
     month: "short",
     day: "numeric",
     year: "numeric",
   });
 }
 
-function md(content?: string): string | undefined {
-  const trimmed = content?.trim();
-  if (!trimmed) return undefined;
-  return marked.parse(trimmed, { async: false }) as string;
+function timeValue(iso?: string | null): number {
+  if (!iso) return 0;
+  const d = iso.length <= 10 ? new Date(`${iso}T00:00:00`) : new Date(iso);
+  const t = d.getTime();
+  return Number.isNaN(t) ? 0 : t;
 }
 
-const STATUS_RANK: Record<string, number> = {
+const DELIVERABLE_STATUS_RANK: Record<string, number> = {
   review: 0,
   in_progress: 1,
   pending: 2,
@@ -31,122 +37,264 @@ const STATUS_RANK: Record<string, number> = {
   delivered: 4,
 };
 
-function toView(d: BackstageDeliverable): DeliverableItemView {
-  const links: DeliverableItemView["links"] = [];
-  if (d.dropbox_url) links.push({ label: "Dropbox", url: d.dropbox_url, kind: "dropbox" });
-  if (d.google_drive_url)
-    links.push({ label: "Google Drive", url: d.google_drive_url, kind: "drive" });
-  if (d.youtube_url) links.push({ label: "YouTube", url: d.youtube_url, kind: "youtube" });
-
-  const notes = (d.notes_blocks ?? [])
-    .map((block) => ({ title: block.title?.trim() || "Notes", html: md(block.content) }))
-    .filter((n): n is { title: string; html: string } => Boolean(n.html));
-
-  return {
-    id: d.id,
-    name: d.name,
-    type: d.deliverable_type ?? "creative",
-    status: d.status,
-    projectName: d.project_name,
-    projectSlug: d.project_slug,
-    clientName: d.client_name,
-    dueDate: formatDate(d.due_to_client ?? d.due_date),
-    deliveredDate: formatDate(d.delivered_to_client ?? d.delivered ?? null),
-    contentHtml: md(d.content_md),
-    notes,
-    links,
-    files: (d.file_details ?? []).map((f) => ({
-      id: f.id,
-      name: f.name,
-      url: f.url,
-      mime_type: f.mime_type,
-      size: f.size,
-      meta: f.meta,
-    })),
-    milestones: (d.milestones ?? [])
-      .filter((m) => m.label)
-      .map((m) => ({
-        label: m.label as string,
-        date: formatDate(m.date ?? null) ?? undefined,
-        done: Boolean(m.done),
-        note: m.note,
-      })),
-  };
-}
+type ActivityItem = {
+  key: string;
+  kind: "deliverable" | "proposal" | "project";
+  label: string;
+  sub?: string;
+  status?: string;
+  href: string;
+  when: number;
+  whenLabel: string | null;
+};
 
 export default async function DashboardPage() {
-  // Resolve scope first so we can build a targeted API URL
   const scopeCtx = await getScopeContext();
-
-  // Build scoped deliverables URL — backend now filters server-side;
-  // client-side filter below is belt-and-suspenders.
-  let deliverablesPath = "/api/v1/deliverables/";
-  if (scopeCtx.active.type === "partner") {
-    deliverablesPath += `?partner=${encodeURIComponent(scopeCtx.active.slug)}`;
-  } else if (scopeCtx.active.type === "client") {
-    deliverablesPath += `?client=${encodeURIComponent(scopeCtx.active.slug)}`;
-  }
-
-  const allDeliverables = await apiList<BackstageDeliverable>(deliverablesPath, { revalidate: 0 });
-
   const { activeClientIds, active } = scopeCtx;
 
-  // Filter deliverables by active scope using the client_id field from the serializer.
-  // client_id is the UUID of the project's client; null means a top-level project.
+  // Build a scoped deliverables URL (backend filters server-side; we also
+  // belt-and-suspenders filter below).
+  let deliverablesPath = "/api/v1/deliverables/";
+  if (active.type === "partner") {
+    deliverablesPath += `?partner=${encodeURIComponent(active.slug)}`;
+  } else if (active.type === "client") {
+    deliverablesPath += `?client=${encodeURIComponent(active.slug)}`;
+  }
+
+  // Fetch the three resource sets in parallel; each degrades to [] on failure.
+  const [allDeliverables, allProjects, allProposals] = await Promise.all([
+    apiList<BackstageDeliverable>(deliverablesPath, { revalidate: 0 }).catch(
+      () => [] as BackstageDeliverable[],
+    ),
+    apiList<Project>("/api/v1/projects/", { revalidate: 0 }).catch(
+      () => [] as Project[],
+    ),
+    apiList<ProposalListItem>("/api/v1/proposals/", { revalidate: 0 }).catch(
+      () => [] as ProposalListItem[],
+    ),
+  ]);
+
+  const inScopeClientId = (clientId?: string | null): boolean =>
+    activeClientIds === null ||
+    (clientId != null && activeClientIds.includes(clientId));
+
   const deliverables =
     activeClientIds === null
       ? allDeliverables
-      : allDeliverables.filter(
-          (d) => d.client_id != null && activeClientIds.includes(d.client_id),
-        );
+      : allDeliverables.filter((d) => inScopeClientId(d.client_id));
 
-  const sorted = [...deliverables].sort((a, b) => {
-    const rank = (STATUS_RANK[a.status] ?? 9) - (STATUS_RANK[b.status] ?? 9);
-    if (rank !== 0) return rank;
-    const aDue = a.due_to_client ?? a.due_date ?? "9999";
-    const bDue = b.due_to_client ?? b.due_date ?? "9999";
-    return aDue.localeCompare(bDue);
-  });
+  const projects = allProjects.filter((p) => inScopeClientId(p.client));
 
-  const items = sorted.map(toView);
+  const proposals =
+    activeClientIds === null
+      ? allProposals
+      : allProposals.filter((p) => p.client != null && inScopeClientId(p.client));
 
+  // ---- Stats -------------------------------------------------------------
   const inFlight = deliverables.filter((d) =>
     ["pending", "in_progress", "review"].includes(d.status),
   ).length;
   const inReview = deliverables.filter((d) => d.status === "review").length;
-  const done = deliverables.filter((d) =>
+  const delivered = deliverables.filter((d) =>
     ["approved", "delivered"].includes(d.status),
   ).length;
+  const activeProjects = projects.filter((p) => p.status === "active").length;
 
-  // Heading reflects active scope
-  const scopeHeading =
+  // ---- Attention list: deliverables awaiting the partner's review --------
+  const needsReview = [...deliverables]
+    .filter((d) => d.status === "review")
+    .sort((a, b) => {
+      const aDue = a.due_to_client ?? a.due_date ?? "9999";
+      const bDue = b.due_to_client ?? b.due_date ?? "9999";
+      return aDue.localeCompare(bDue);
+    })
+    .slice(0, 5);
+
+  // ---- Recent activity: newest across deliverables/proposals/projects ----
+  const activity: ActivityItem[] = [];
+
+  for (const d of deliverables) {
+    const when = timeValue(d.updated_at ?? d.created_at);
+    activity.push({
+      key: `d-${d.id}`,
+      kind: "deliverable",
+      label: d.name,
+      sub: d.project_name ?? d.client_name ?? undefined,
+      status: d.status,
+      href: `/dashboard/deliverables/${d.id}`,
+      when,
+      whenLabel: formatDate(d.updated_at ?? d.created_at),
+    });
+  }
+  for (const p of proposals) {
+    const when = timeValue(p.created_at);
+    activity.push({
+      key: `pr-${p.id}`,
+      kind: "proposal",
+      label: p.name,
+      sub: p.client_name ?? p.lead_name ?? undefined,
+      status: p.status,
+      href: `/dashboard/proposals/${p.id}`,
+      when,
+      whenLabel: formatDate(p.created_at),
+    });
+  }
+  for (const p of projects) {
+    const when = timeValue(p.updated_at ?? p.created_at);
+    activity.push({
+      key: `pj-${p.id}`,
+      kind: "project",
+      label: p.name,
+      sub: p.client_name ?? undefined,
+      status: p.status,
+      href: `/dashboard/projects/${p.slug}`,
+      when,
+      whenLabel: formatDate(p.updated_at ?? p.created_at),
+    });
+  }
+
+  const recent = activity.sort((a, b) => b.when - a.when).slice(0, 8);
+
+  const KIND_META: Record<
+    ActivityItem["kind"],
+    { label: string; dot: string }
+  > = {
+    deliverable: { label: "Deliverable", dot: "bg-[var(--brand-primary)]" },
+    proposal: { label: "Proposal", dot: "bg-[var(--brand-accent)]" },
+    project: { label: "Project", dot: "bg-[var(--brand-muted)]" },
+  };
+
+  const greeting =
     active.type === "all"
-      ? "Deliverables"
-      : active.type === "partner"
-        ? `${active.name} — Deliverables`
-        : `${active.name} — Deliverables`;
+      ? "Dashboard"
+      : `${active.name} — Dashboard`;
 
   return (
     <div className="space-y-8">
       {/* Header */}
       <div>
         <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">
-          {scopeHeading}
+          {greeting}
         </h1>
         <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          Everything we&apos;re producing for you, in one place.
+          A snapshot of everything we&apos;re producing for you.
         </p>
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
-        <StatsCard label="In Flight" value={inFlight} />
-        <StatsCard label="Awaiting Your Review" value={inReview} />
-        <StatsCard label="Delivered" value={done} sub={`${deliverables.length} total`} />
+      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <Link href="/dashboard/deliverables" className="block">
+          <StatsCard label="In Flight" value={inFlight} />
+        </Link>
+        <Link href="/dashboard/deliverables" className="block">
+          <StatsCard label="Awaiting Your Review" value={inReview} />
+        </Link>
+        <Link href="/dashboard/deliverables" className="block">
+          <StatsCard
+            label="Delivered"
+            value={delivered}
+            sub={`${deliverables.length} total`}
+          />
+        </Link>
+        <Link href="/dashboard/projects" className="block">
+          <StatsCard
+            label="Active Projects"
+            value={activeProjects}
+            sub={`${projects.length} total`}
+          />
+        </Link>
       </div>
 
-      {/* Deliverables viewer */}
-      <DeliverablesViewer items={items} />
+      <div className="grid gap-6 lg:grid-cols-3">
+        {/* Needs your review */}
+        <section className="lg:col-span-2">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+              Awaiting your review
+            </h2>
+            <Link
+              href="/dashboard/deliverables"
+              className="text-xs font-medium text-[var(--brand-primary)] hover:underline"
+            >
+              View all deliverables →
+            </Link>
+          </div>
+
+          {needsReview.length === 0 ? (
+            <EmptyState
+              title="Nothing waiting on you"
+              message="When a deliverable is ready for your review, it'll show up here."
+            />
+          ) : (
+            <ul className="divide-y divide-black/5 overflow-hidden rounded-2xl border border-black/5 bg-[var(--brand-surface)]">
+              {needsReview.map((d) => (
+                <li key={d.id}>
+                  <Link
+                    href={`/dashboard/deliverables/${d.id}`}
+                    className="flex items-center justify-between gap-3 px-4 py-3 transition hover:bg-[var(--brand-surface-strong)]"
+                  >
+                    <div className="min-w-0">
+                      <p className="truncate text-sm font-medium text-[var(--brand-foreground)]">
+                        {d.name}
+                      </p>
+                      <p className="truncate text-xs text-[var(--brand-muted)]">
+                        {[d.project_name, d.client_name]
+                          .filter(Boolean)
+                          .join(" · ")}
+                        {formatDate(d.due_to_client ?? d.due_date)
+                          ? ` · due ${formatDate(d.due_to_client ?? d.due_date)}`
+                          : ""}
+                      </p>
+                    </div>
+                    <StatusBadge status={d.status} />
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+
+        {/* Recent activity */}
+        <section>
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+              Recent activity
+            </h2>
+          </div>
+
+          {recent.length === 0 ? (
+            <EmptyState
+              title="No activity yet"
+              message="Deliverables, proposals, and projects will appear here as they move."
+            />
+          ) : (
+            <ul className="space-y-1 overflow-hidden rounded-2xl border border-black/5 bg-[var(--brand-surface)] p-2">
+              {recent.map((a) => (
+                <li key={a.key}>
+                  <Link
+                    href={a.href}
+                    className="flex items-start gap-3 rounded-xl px-3 py-2.5 transition hover:bg-[var(--brand-surface-strong)]"
+                  >
+                    <span
+                      className={`mt-1.5 h-2 w-2 shrink-0 rounded-full ${KIND_META[a.kind].dot}`}
+                    />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm font-medium text-[var(--brand-foreground)]">
+                        {a.label}
+                      </p>
+                      <p className="truncate text-xs text-[var(--brand-muted)]">
+                        {KIND_META[a.kind].label}
+                        {a.sub ? ` · ${a.sub}` : ""}
+                        {a.whenLabel ? ` · ${a.whenLabel}` : ""}
+                      </p>
+                    </div>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          )}
+        </section>
+      </div>
     </div>
   );
 }
