@@ -42,7 +42,7 @@ export default async function SignInPage({
           </p>
           <a
             href={ssoUrl}
-            className="mt-6 inline-block rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+            className="mt-6 inline-block rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90"
           >
             Try again
           </a>

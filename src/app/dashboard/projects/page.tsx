@@ -116,7 +116,7 @@ export default async function ProjectsPage({
               }
               className={`flex items-center gap-1.5 rounded-full px-4 py-1.5 text-sm font-medium transition ${
                 isActive
-                  ? "bg-[var(--brand-primary)] text-white shadow-sm"
+                  ? "bg-[var(--brand-primary)] text-[var(--brand-on-primary)] shadow-sm"
                   : "bg-[var(--brand-surface-strong)] text-[var(--brand-muted)] hover:bg-[var(--brand-surface-strong)] hover:text-[var(--brand-foreground)]"
               }`}
             >
@@ -150,7 +150,7 @@ export default async function ProjectsPage({
         />
         <button
           type="submit"
-          className="rounded-2xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          className="rounded-2xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90"
         >
           Search
         </button>

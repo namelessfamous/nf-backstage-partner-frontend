@@ -11,6 +11,7 @@
   --brand-surface-strong: #22222a; /* noirSurface */
   --brand-foreground: #f5f0e8; /* cream */
   --brand-muted: #8a8577; /* creamMuted */
+  --brand-on-primary: #0a0a0b; /* noir — text on acid lime, always dark */
 }
 
 @theme inline {

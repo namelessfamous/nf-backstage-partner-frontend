@@ -58,6 +58,7 @@ export default async function RootLayout({
             "--brand-surface-strong": partner.theme.surfaceStrong,
             "--brand-foreground": partner.theme.foreground,
             "--brand-muted": partner.theme.muted,
+            "--brand-on-primary": partner.theme.onPrimary,
           } as CSSProperties
         }
       >

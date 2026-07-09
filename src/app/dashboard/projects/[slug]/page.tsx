@@ -242,7 +242,7 @@ export default async function ProjectDetailPage({
                 key={m.id}
                 className="flex items-center gap-2 rounded-2xl border border-black/5 bg-[var(--brand-surface)] px-3 py-2"
               >
-                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand-primary)] text-xs font-semibold text-white">
+                <div className="flex h-6 w-6 items-center justify-center rounded-full bg-[var(--brand-primary)] text-xs font-semibold text-[var(--brand-on-primary)]">
                   {(m.user_name ?? m.user_email ?? "?")[0].toUpperCase()}
                 </div>
                 <span className="text-sm text-[var(--brand-foreground)]">

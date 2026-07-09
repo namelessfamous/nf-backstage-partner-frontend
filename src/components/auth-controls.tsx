@@ -12,7 +12,7 @@ export function AuthControls({ isAuthenticated }: AuthControlsProps) {
       <div className="flex items-center gap-3">
         <a
           href="/dashboard"
-          className="rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
+          className="rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90"
         >
           Go to dashboard
         </a>
@@ -32,7 +32,7 @@ export function AuthControls({ isAuthenticated }: AuthControlsProps) {
   return (
     <a
       href="/auth/signin"
-      className="rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--brand-surface)]"
+      className="rounded-full bg-[var(--brand-primary)] px-5 py-3 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-accent)] focus-visible:ring-offset-2 focus-visible:ring-offset-[var(--brand-surface)]"
     >
       Sign in with nf-id
     </a>

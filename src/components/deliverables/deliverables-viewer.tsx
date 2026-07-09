@@ -91,7 +91,7 @@ export function DeliverablesViewer({ items }: { items: DeliverableItemView[] }) 
                 onClick={() => setStatusFilter(f.value)}
                 className={`rounded-full border px-3.5 py-1.5 text-sm font-medium transition ${
                   active
-                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-white"
+                    ? "border-[var(--brand-primary)] bg-[var(--brand-primary)] text-[var(--brand-on-primary)]"
                     : "border-black/10 bg-[var(--brand-surface)] text-[var(--brand-muted)] hover:border-[var(--brand-primary)]/40"
                 }`}
               >

@@ -76,7 +76,7 @@ export default async function ClientsPage({
         />
         <button
           type="submit"
-          className="rounded-2xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+          className="rounded-2xl bg-[var(--brand-primary)] px-4 py-2.5 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90"
         >
           Search
         </button>

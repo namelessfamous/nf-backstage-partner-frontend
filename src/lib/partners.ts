@@ -17,6 +17,8 @@ export type PartnerConfig = {
     surfaceStrong: string;
     foreground: string;
     muted: string;
+    /** Foreground color used on top of `primary`/`accent` fills. Must contrast the acid lime — always dark. */
+    onPrimary: string;
   };
 };
 
@@ -38,6 +40,7 @@ export const defaultPartnerConfig: PartnerConfig = {
     surfaceStrong: "#22222a", // noirSurface — callout/elevated
     foreground: "#f5f0e8", // cream — primary text
     muted: "#8a8577", // creamMuted — tertiary/labels
+    onPrimary: "#0a0a0b", // noir — text on acid lime (always dark)
   },
 };
 
@@ -60,6 +63,7 @@ export const partnerConfigs: PartnerConfig[] = [
       surfaceStrong: "#fef3c7",
       foreground: "#292524",
       muted: "#57534e",
+      onPrimary: "#292524", // dark text on the gold primary
     },
   },
 ];

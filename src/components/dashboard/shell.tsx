@@ -64,8 +64,8 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
   const sidebarContent = (
     <div className="flex h-full flex-col">
       {/* Partner wordmark */}
-      <div className="flex h-16 shrink-0 items-center border-b border-white/10 px-6">
-        <span className="text-lg font-semibold text-white">{partner.displayName}</span>
+      <div className="flex h-16 shrink-0 items-center border-b border-black/10 px-6">
+        <span className="text-lg font-semibold text-black">{partner.displayName}</span>
       </div>
 
       {/* Nav */}
@@ -167,9 +167,20 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
 
           {/* Partner + active scope badge */}
           <div className="hidden items-center gap-2 sm:flex">
-            <span className="rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
-              {partner.displayName}
-            </span>
+            {partner.key === "default" ? (
+              <span className="flex items-center rounded-full bg-[var(--brand-foreground)] px-3 py-1">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img
+                  src="https://r2.namfam.co/namelessfamous-logo-min.svg"
+                  alt={partner.displayName}
+                  className="h-5 w-auto"
+                />
+              </span>
+            ) : (
+              <span className="rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
+                {partner.displayName}
+              </span>
+            )}
             {scopeLabel && scopeLabel !== partner.displayName && (
               <span className="rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--brand-primary)]/80">
                 {scopeLabel}
@@ -178,7 +189,7 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
           </div>
 
           {/* User avatar */}
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-primary)] text-sm font-semibold text-white">
+          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-primary)] text-sm font-semibold text-[var(--brand-on-primary)]">
             {(user?.name ?? user?.email ?? "?")[0].toUpperCase()}
           </div>
         </header>
