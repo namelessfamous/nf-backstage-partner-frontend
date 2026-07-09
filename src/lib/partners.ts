@@ -70,11 +70,11 @@ export const defaultPartnerConfig: PartnerConfig = {
       foreground: "#DDDBDE", // primary text on dark
       muted: "#8a8587", // muted text
       onPrimary: "#111111", // dark text on light primary
-      navIcon: "#019458", // green nav icon accent
+      navIcon: "#0a0a0b", // noir nav icon on lime
       background: "#050505", // noir atmospheric background
       sidebarFrom: "#c8f53c", // acid lime signature (top)
-      sidebarTo: "#0a0a0b", // noir black (bottom)
-      sidebarText: "#f5f5f4", // light ink — legible over the black bottom
+      sidebarTo: "#aadd1f", // deeper acid lime (bottom) — sidebar stays lime
+      sidebarText: "#0a0a0b", // noir ink on lime
     },
     // Nameless Famous — namelessfamous.com brand (light mode)
     light: {
@@ -86,11 +86,11 @@ export const defaultPartnerConfig: PartnerConfig = {
       foreground: "#111111", // near-black ink
       muted: "#6b675c", // muted ink
       onPrimary: "#DDDBDE", // light text on dark charcoal primary
-      navIcon: "#f54a00", // orange nav icon accent
+      navIcon: "#0a0a0b", // noir nav icon on lime
       background: "#f5f0e8", // cream paper
       sidebarFrom: "#c8f53c", // acid lime signature (top)
-      sidebarTo: "#ffffff", // white (bottom)
-      sidebarText: "#111111", // noir ink — legible over the white bottom
+      sidebarTo: "#aadd1f", // deeper acid lime (bottom) — sidebar stays lime
+      sidebarText: "#0a0a0b", // noir ink on lime
     },
   },
 };

@@ -20,8 +20,8 @@
   --brand-on-primary: #DDDBDE; /* light text on dark charcoal primary */
   --brand-nav-icon: #f54a00; /* orange nav icon accent */
   --brand-sidebar-from: #c8f53c; /* acid lime signature (top) */
-  --brand-sidebar-to: #ffffff; /* white (bottom) */
-  --brand-sidebar-text: #111111; /* noir ink over white bottom */
+  --brand-sidebar-to: #aadd1f; /* deeper acid lime (bottom) */
+  --brand-sidebar-text: #0a0a0b; /* noir ink on lime */
 }
 
 @theme inline {
