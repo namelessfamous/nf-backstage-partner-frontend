@@ -30,6 +30,8 @@ export type ScopeContext = {
   clients: Client[];
   /** If false, only one accessible scope — hide the selector. */
   showSelector: boolean;
+  /** True when the logged-in user is admin or super_admin. */
+  isAdmin: boolean;
   /**
    * Convenience: the set of client UUIDs that fall within the active scope.
    * null → no filter (show everything).
@@ -146,9 +148,9 @@ export async function getScopeContext(): Promise<ScopeContext> {
     active = { type: "all" };
   }
 
-  // Only show selector if there is more than one thing to choose between.
+  // Show selector if admin OR if there are multiple scopes to switch between.
   const totalScopes = partners.length + clients.length;
-  const showSelector = totalScopes > 1;
+  const showSelector = isAdmin || totalScopes > 1;
 
   // Pre-compute convenience fields for pages.
   let activeClientIds: string[] | null = null;
@@ -166,6 +168,7 @@ export async function getScopeContext(): Promise<ScopeContext> {
     partners,
     clients,
     showSelector,
+    isAdmin,
     activeClientIds,
     activeClientSlug,
   };

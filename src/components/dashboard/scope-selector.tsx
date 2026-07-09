@@ -61,7 +61,7 @@ export function ScopeSelector({ active, partners, clients }: Props) {
         disabled={isPending}
         aria-haspopup="listbox"
         aria-expanded={open}
-        className={`flex items-center gap-1.5 rounded-xl border px-3 py-1.5 text-sm font-medium transition
+        className={`flex items-center gap-1.5 rounded-xl border px-2 py-1.5 text-sm font-medium transition sm:px-3
           border-[var(--brand-primary)]/25
           bg-[var(--brand-surface-strong)]
           text-[var(--brand-primary)]
@@ -83,7 +83,8 @@ export function ScopeSelector({ active, partners, clients }: Props) {
             d="M3 7h18M3 12h18M3 17h18"
           />
         </svg>
-        <span className="max-w-[120px] truncate">{activeName}</span>
+        {/* Label hidden on mobile — collapses to an icon-only dropdown. */}
+        <span className="hidden max-w-[120px] truncate sm:inline">{activeName}</span>
         <svg
           className={`h-3.5 w-3.5 shrink-0 transition-transform duration-150 ${open ? "rotate-180" : ""}`}
           fill="none"
@@ -110,7 +111,7 @@ export function ScopeSelector({ active, partners, clients }: Props) {
           {/* Dropdown panel */}
           <div
             role="listbox"
-            className="absolute right-0 z-20 mt-2 w-60 overflow-hidden rounded-2xl border border-black/8 bg-white shadow-xl"
+            className="absolute right-0 z-20 mt-2 w-60 overflow-hidden rounded-2xl border border-black/10 bg-[var(--brand-surface)] text-[var(--brand-foreground)] shadow-xl"
           >
             {/* All */}
             <div className="p-1.5">
@@ -118,16 +119,16 @@ export function ScopeSelector({ active, partners, clients }: Props) {
                 role="option"
                 aria-selected={active.type === "all"}
                 onClick={() => selectScope("all")}
-                className={`w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-gray-50
-                  ${active.type === "all" ? "font-semibold text-[var(--brand-primary)]" : "text-gray-700"}`}
+                className={`w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-[var(--brand-surface-strong)]
+                  ${active.type === "all" ? "font-semibold text-[var(--brand-primary)]" : "text-[var(--brand-foreground)]"}`}
               >
                 All Scopes
               </button>
             </div>
 
             {partners.length > 0 && (
-              <div className="border-t border-black/5 p-1.5">
-                <p className="mb-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              <div className="border-t border-black/10 p-1.5">
+                <p className="mb-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-muted)]">
                   Partners
                 </p>
                 {partners.map((p) => (
@@ -136,8 +137,8 @@ export function ScopeSelector({ active, partners, clients }: Props) {
                     role="option"
                     aria-selected={isActiveScope(`partner:${p.slug}`)}
                     onClick={() => selectScope(`partner:${p.slug}`)}
-                    className={`w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-gray-50
-                      ${isActiveScope(`partner:${p.slug}`) ? "font-semibold text-[var(--brand-primary)]" : "text-gray-700"}`}
+                    className={`w-full rounded-xl px-3 py-2 text-left text-sm transition hover:bg-[var(--brand-surface-strong)]
+                      ${isActiveScope(`partner:${p.slug}`) ? "font-semibold text-[var(--brand-primary)]" : "text-[var(--brand-foreground)]"}`}
                   >
                     {p.name}
                   </button>
@@ -146,8 +147,8 @@ export function ScopeSelector({ active, partners, clients }: Props) {
             )}
 
             {clients.length > 0 && (
-              <div className="border-t border-black/5 p-1.5">
-                <p className="mb-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-gray-400">
+              <div className="border-t border-black/10 p-1.5">
+                <p className="mb-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-muted)]">
                   Clients
                 </p>
                 {clients.map((c) => (
@@ -156,12 +157,12 @@ export function ScopeSelector({ active, partners, clients }: Props) {
                     role="option"
                     aria-selected={isActiveScope(`client:${c.slug}`)}
                     onClick={() => selectScope(`client:${c.slug}`)}
-                    className={`flex w-full items-baseline justify-between rounded-xl px-3 py-2 text-left text-sm transition hover:bg-gray-50
-                      ${isActiveScope(`client:${c.slug}`) ? "font-semibold text-[var(--brand-primary)]" : "text-gray-700"}`}
+                    className={`flex w-full items-baseline justify-between rounded-xl px-3 py-2 text-left text-sm transition hover:bg-[var(--brand-surface-strong)]
+                      ${isActiveScope(`client:${c.slug}`) ? "font-semibold text-[var(--brand-primary)]" : "text-[var(--brand-foreground)]"}`}
                   >
                     <span>{c.name}</span>
                     {c.partner_name && (
-                      <span className="ml-2 shrink-0 text-[11px] text-gray-400">
+                      <span className="ml-2 shrink-0 text-[11px] text-[var(--brand-muted)]">
                         {c.partner_name}
                       </span>
                     )}

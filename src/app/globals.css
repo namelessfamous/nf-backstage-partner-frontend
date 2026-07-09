@@ -114,3 +114,44 @@ a {
   background: var(--brand-accent);
   color: #0a0a0b;
 }
+
+/* ── Print styles: hide chrome, show only deliverable content ── */
+@media print {
+  /* Hide sidebar, header, nav, and non-content chrome */
+  aside,
+  header,
+  nav,
+  .deliverable-detail-page > nav,
+  .deliverable-detail-page section:not(:has(.deliverable-print-content)),
+  [data-no-print] {
+    display: none !important;
+  }
+
+  body {
+    background: #fff !important;
+    color: #111 !important;
+  }
+
+  /* Make the content panel fill the page */
+  .deliverable-print-content {
+    border: none !important;
+    padding: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+  }
+
+  .dl-prose {
+    color: #111 !important;
+  }
+
+  .dl-prose a {
+    color: #000 !important;
+    text-decoration: underline !important;
+  }
+
+  /* Ensure no page breaks inside milestones/notes */
+  article, li {
+    break-inside: avoid;
+  }
+}
