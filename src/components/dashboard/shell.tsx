@@ -5,11 +5,9 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { PartnerConfig } from "@/lib/partners";
 
-// Server route clears the local partner session cookie (race-free) then hands
-// off to the central nf-id /logout with a return back to this app.
-function fullSignOut() {
-  window.location.href = "/api/auth/logout";
-}
+// Logout href — a plain server-route navigation. Rendered as a real <a> so it
+// works even without hydrated client JS.
+const LOGOUT_HREF = "/api/auth/logout";
 import type { ScopeContext } from "@/lib/scope";
 import type { Session } from "next-auth";
 import { ScopeSelector } from "@/components/dashboard/scope-selector";
@@ -277,8 +275,8 @@ export function DashboardShell({ partner, user, scopeCtx, navData, children }: P
               {user?.email}
             </p>
           </div>
-          <button
-            onClick={() => void fullSignOut()}
+          <a
+            href={LOGOUT_HREF}
             title="Sign out"
             style={{ color: "color-mix(in srgb, var(--brand-sidebar-text) 60%, transparent)" }}
             className="rounded-lg p-1.5 transition hover:bg-[var(--brand-sidebar-text)]/10"
@@ -286,7 +284,7 @@ export function DashboardShell({ partner, user, scopeCtx, navData, children }: P
             <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
             </svg>
-          </button>
+          </a>
         </div>
       </div>
     </div>

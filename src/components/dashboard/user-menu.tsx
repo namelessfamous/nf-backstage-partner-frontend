@@ -14,11 +14,11 @@ import Link from "next/link";
 import { LayoutDashboard, LifeBuoy, LogOut } from "lucide-react";
 import type { Session } from "next-auth";
 
-// Server route clears the local partner session cookie (race-free) then hands
-// off to the central nf-id /logout with a return back to this app.
-function fullSignOut() {
-  window.location.href = "/api/auth/logout";
-}
+// Logout is a plain server-route navigation. Using a real <a href> (not an
+// onClick handler) means it works even if client JS is stale/unhydrated —
+// the previous onClick approach could silently no-op and leave the user on
+// the dashboard. The route clears the local session then hands off to nf-id.
+const LOGOUT_HREF = "/api/auth/logout";
 
 function Avatar({ user }: { user?: Session["user"] }) {
   const initial =
@@ -118,20 +118,17 @@ export function UserMenu({
               )}
             </div>
 
-            {/* Sign out */}
+            {/* Sign out — plain anchor so it never depends on hydrated JS */}
             <div className="border-t border-black/5 py-1">
-              <button
-                type="button"
+              <a
+                href={LOGOUT_HREF}
                 role="menuitem"
-                onClick={() => {
-                  setOpen(false);
-                  fullSignOut();
-                }}
+                onClick={() => setOpen(false)}
                 className="flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm font-medium text-red-500 transition hover:bg-red-500/10"
               >
                 <LogOut className="size-4" />
                 Sign out
-              </button>
+              </a>
             </div>
           </div>
         </>

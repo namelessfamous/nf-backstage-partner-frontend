@@ -1,14 +1,10 @@
-"use client";
-
 type AuthControlsProps = {
   isAuthenticated: boolean;
 };
 
-// Server route clears the local partner session cookie (race-free) then hands
-// off to the central nf-id /logout with a return back to this app.
-function fullSignOut() {
-  window.location.href = "/api/auth/logout";
-}
+// Logout is a plain server-route navigation rendered as a real <a href> so it
+// works without any client JS.
+const LOGOUT_HREF = "/api/auth/logout";
 
 export function AuthControls({ isAuthenticated }: AuthControlsProps) {
   if (isAuthenticated) {
@@ -20,13 +16,12 @@ export function AuthControls({ isAuthenticated }: AuthControlsProps) {
         >
           Go to dashboard
         </a>
-        <button
+        <a
           className="cursor-pointer rounded-full border border-[var(--brand-secondary)]/20 bg-transparent px-5 py-3 text-sm font-semibold text-[var(--brand-foreground)] transition hover:border-[var(--brand-secondary)]/40"
-          onClick={() => void fullSignOut()}
-          type="button"
+          href={LOGOUT_HREF}
         >
           Sign out
-        </button>
+        </a>
       </div>
     );
   }
