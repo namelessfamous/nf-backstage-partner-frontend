@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
-import type { CSSProperties } from "react";
 import { DM_Sans, DM_Serif_Display, DM_Mono } from "next/font/google";
 import { getPartnerContext } from "@/lib/partner-context";
+import { buildThemeCss, themeInitScript } from "@/lib/theme";
 import "./globals.css";
 
 // Nameless Famous — brutNOIR typography
@@ -50,26 +50,21 @@ export default async function RootLayout({
   return (
     <html
       lang="en"
+      // Resolved to the real value pre-paint by themeInitScript; this default
+      // keeps SSR markup deterministic.
+      data-theme={partner.defaultMode}
+      suppressHydrationWarning
       className={`h-full antialiased ${dmSans.variable} ${dmSerifDisplay.variable} ${dmMono.variable}`}
     >
-      <body
-        className="flex h-full flex-col"
-        style={
-          {
-            "--brand-primary": partner.theme.primary,
-            "--brand-secondary": partner.theme.secondary,
-            "--brand-accent": partner.theme.accent,
-            "--brand-surface": partner.theme.surface,
-            "--brand-surface-strong": partner.theme.surfaceStrong,
-            "--brand-foreground": partner.theme.foreground,
-            "--brand-muted": partner.theme.muted,
-            "--brand-on-primary": partner.theme.onPrimary,
-            "--brand-nav-icon": partner.theme.navIcon,
-          } as CSSProperties
-        }
-      >
-        {children}
-      </body>
+      <head>
+        {/* Partner-scoped palettes bound to html[data-theme]. */}
+        <style dangerouslySetInnerHTML={{ __html: buildThemeCss(partner) }} />
+        {/* Resolve stored/default theme before first paint to avoid FOUC. */}
+        <script
+          dangerouslySetInnerHTML={{ __html: themeInitScript(partner.defaultMode) }}
+        />
+      </head>
+      <body className="flex h-full flex-col">{children}</body>
     </html>
   );
 }

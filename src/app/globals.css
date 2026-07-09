@@ -1,6 +1,11 @@
 @import "tailwindcss";
 
-/* Nameless Famous — brutNOIR default theme */
+/*
+ * Brand palette variables (--background, --brand-*) are injected at the
+ * document root per-partner and bound to html[data-theme="light"|"dark"]
+ * (see src/lib/theme.ts + src/app/layout.tsx). The values below are a safe
+ * brutNOIR fallback in case the injected block is unavailable.
+ */
 :root {
   --background: #0a0a0b; /* noir */
   --foreground: #f5f0e8; /* cream */
@@ -21,6 +26,17 @@
   --font-sans: var(--font-dm-sans), "DM Sans", "Segoe UI", Arial, Helvetica, sans-serif;
   --font-serif: var(--font-dm-serif), "DM Serif Display", Georgia, serif;
   --font-mono: var(--font-dm-mono), "DM Mono", "SFMono-Regular", Consolas, Menlo, monospace;
+}
+
+/* Smooth cross-fade when the light/dark switcher flips the palette. */
+html {
+  transition: background-color 0.2s ease;
+}
+body,
+aside,
+header,
+main {
+  transition: background-color 0.2s ease, color 0.2s ease, border-color 0.2s ease;
 }
 
 * {

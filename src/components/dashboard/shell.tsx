@@ -17,6 +17,68 @@ async function fullSignOut() {
 import type { ScopeContext } from "@/lib/scope";
 import type { Session } from "next-auth";
 import { ScopeSelector } from "@/components/dashboard/scope-selector";
+import { ThemeToggle } from "@/components/theme-toggle";
+
+// User avatar: renders the SSO photo when present, otherwise a colored
+// initial. `tone="header"` uses brand fills; `tone="footer"` sits on the
+// sidebar gradient and keeps a legible contained chip.
+function UserAvatar({
+  user,
+  tone,
+}: {
+  user?: Session["user"];
+  tone: "header" | "footer";
+}) {
+  const initial =
+    (user?.name ?? user?.email ?? "?").trim().charAt(0).toUpperCase() || "?";
+  const base = tone === "header" ? "h-8 w-8 text-sm" : "h-9 w-9 text-sm";
+  const fill =
+    tone === "header"
+      ? "bg-[var(--brand-primary)] text-[var(--brand-on-primary)]"
+      : "bg-black/30 text-white ring-1 ring-white/25";
+
+  if (user?.image) {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src={user.image}
+        alt={user?.name ?? user?.email ?? "User"}
+        className={`${base} shrink-0 rounded-full object-cover`}
+        referrerPolicy="no-referrer"
+      />
+    );
+  }
+
+  return (
+    <div
+      className={`${base} ${fill} flex shrink-0 items-center justify-center rounded-full font-semibold`}
+      title={user?.name ?? user?.email ?? undefined}
+    >
+      {initial}
+    </div>
+  );
+}
+
+// Composed NF mark used in the header (acid-lime tile + noir glyph).
+function NfIcon({ partner }: { partner: PartnerConfig }) {
+  if (partner.key === "default") {
+    return (
+      // eslint-disable-next-line @next/next/no-img-element
+      <img
+        src="/nf-icon-composed.svg"
+        alt={partner.displayName}
+        width={32}
+        height={32}
+        className="h-8 w-8"
+      />
+    );
+  }
+  return (
+    <span className="rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
+      {partner.displayName}
+    </span>
+  );
+}
 
 const NAV_ITEMS = [
   {
@@ -114,9 +176,7 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
       {/* User footer */}
       <div className="border-t border-white/10 p-4">
         <div className="flex items-center gap-3">
-          <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/20 text-sm font-semibold text-white">
-            {(user?.name ?? user?.email ?? "?")[0].toUpperCase()}
-          </div>
+          <UserAvatar user={user} tone="footer" />
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-medium text-white">
               {user?.name ?? "Partner user"}
@@ -160,11 +220,17 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
       {/* Main content */}
       <div className="flex min-w-0 flex-1 flex-col">
         {/* Top header */}
-        <header className="flex h-16 shrink-0 items-center gap-3 border-b border-black/5 bg-[var(--brand-surface)] px-6">
+        <header className="flex h-16 shrink-0 items-center gap-2 border-b border-black/5 bg-[var(--brand-surface)] px-4 sm:gap-3 sm:px-6">
+          {/* Mobile: NF icon sits to the LEFT of the menu button */}
+          <span className="flex items-center lg:hidden">
+            <NfIcon partner={partner} />
+          </span>
+
           {/* Mobile hamburger */}
           <button
             className="rounded-lg p-1.5 text-[var(--brand-muted)] transition hover:bg-[var(--brand-surface-strong)] lg:hidden"
             onClick={() => setSidebarOpen(true)}
+            aria-label="Open menu"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
@@ -174,7 +240,11 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Scope selector (only shown when multiple scopes are accessible) */}
+          {/* Light/dark switcher — sits to the LEFT of the NfIcon */}
+          <ThemeToggle defaultMode={partner.defaultMode} />
+
+          {/* Scope selector (only shown when multiple scopes are accessible).
+              Collapses to an icon-only dropdown on mobile. */}
           {scopeCtx.showSelector && (
             <ScopeSelector
               active={scopeCtx.active}
@@ -183,24 +253,10 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
             />
           )}
 
-          {/* Partner + active scope badge */}
+          {/* Partner NF icon + active scope badge — desktop only
+              (on mobile the NfIcon already lives on the far left). */}
           <div className="hidden items-center gap-2 sm:flex">
-            {partner.key === "default" ? (
-              <span className="flex items-center">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="/nf-icon-composed.svg"
-                  alt={partner.displayName}
-                  width={32}
-                  height={32}
-                  className="h-8 w-8"
-                />
-              </span>
-            ) : (
-              <span className="rounded-full bg-[var(--brand-surface-strong)] px-3 py-1 text-xs font-semibold text-[var(--brand-primary)]">
-                {partner.displayName}
-              </span>
-            )}
+            <NfIcon partner={partner} />
             {scopeLabel && scopeLabel !== partner.displayName && (
               <span className="rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--brand-primary)]/80">
                 {scopeLabel}
@@ -209,9 +265,7 @@ export function DashboardShell({ partner, user, scopeCtx, children }: Props) {
           </div>
 
           {/* User avatar */}
-          <div className="flex h-8 w-8 items-center justify-center rounded-full bg-[var(--brand-primary)] text-sm font-semibold text-[var(--brand-on-primary)]">
-            {(user?.name ?? user?.email ?? "?")[0].toUpperCase()}
-          </div>
+          <UserAvatar user={user} tone="header" />
         </header>
 
         {/* Page content */}
