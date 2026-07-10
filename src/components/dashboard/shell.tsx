@@ -282,6 +282,24 @@ export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical
 
       {/* Nav */}
       <nav className="flex-1 space-y-1 overflow-visible px-3 py-4">
+        {/* Scope selector — lives at the top of the sidebar, above Dashboard.
+            Desktop only: on mobile it stays in the header (see below). */}
+        {scopeCtx.showSelector && (
+          <div className="hidden lg:block">
+            <ScopeSelector
+              variant="sidebar"
+              active={scopeCtx.active}
+              partners={scopeCtx.partners}
+              clients={scopeCtx.clients}
+              singlePartner={scopeCtx.singlePartner}
+            />
+            <div
+              className="my-2 border-t"
+              style={{ borderColor: "color-mix(in srgb, var(--brand-sidebar-text) 15%, transparent)" }}
+            />
+          </div>
+        )}
+
         {/* Top-level Dashboard link */}
         <Link
           href={DASHBOARD_ITEM.href}
@@ -412,33 +430,31 @@ export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical
           {/* Spacer */}
           <div className="flex-1" />
 
-          {/* Light/dark switcher — sits to the LEFT of the NfIcon */}
+          {/* Light/dark switcher */}
           <ThemeToggle defaultMode={partner.defaultMode} />
 
-          {/* Scope selector (only shown when multiple scopes are accessible).
-              Collapses to an icon-only dropdown on mobile. */}
+          {/* Scope selector — mobile only. On desktop it now lives in the
+              sidebar (above Dashboard). Collapses to a clients-icon dropdown. */}
           {scopeCtx.showSelector && (
-            <ScopeSelector
-              active={scopeCtx.active}
-              partners={scopeCtx.partners}
-              clients={scopeCtx.clients}
-              singlePartner={scopeCtx.singlePartner}
-            />
+            <div className="lg:hidden">
+              <ScopeSelector
+                active={scopeCtx.active}
+                partners={scopeCtx.partners}
+                clients={scopeCtx.clients}
+                singlePartner={scopeCtx.singlePartner}
+              />
+            </div>
           )}
 
-          {/* Partner NF icon + active scope badge — desktop only
-              (on mobile the NfIcon already lives on the far left). */}
-          <div className="hidden items-center gap-2 sm:flex">
-            <NfIcon partner={partner} />
-            {scopeLabel && scopeLabel !== partner.displayName && (
-              <span className="rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--brand-primary)]/80">
-                {scopeLabel}
-              </span>
-            )}
-          </div>
-
-          {/* User menu (avatar dropdown) */}
-          <UserMenu user={user} supportEmail={partner.supportEmail} />
+          {/* User menu (avatar dropdown) — now carries the active scope label
+              as a combined tag + avatar unit. */}
+          <UserMenu
+            user={user}
+            supportEmail={partner.supportEmail}
+            scopeLabel={
+              scopeLabel && scopeLabel !== partner.displayName ? scopeLabel : null
+            }
+          />
         </header>
 
         {/* Scrollable region: page content + footer */}

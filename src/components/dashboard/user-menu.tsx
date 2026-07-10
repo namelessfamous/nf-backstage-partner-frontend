@@ -45,9 +45,12 @@ function Avatar({ user }: { user?: Session["user"] }) {
 export function UserMenu({
   user,
   supportEmail,
+  scopeLabel,
 }: {
   user?: Session["user"];
   supportEmail?: string;
+  /** Active scope name, rendered as a combined tag next to the avatar. */
+  scopeLabel?: string | null;
 }) {
   const [open, setOpen] = useState(false);
 
@@ -59,8 +62,17 @@ export function UserMenu({
         aria-haspopup="menu"
         aria-expanded={open}
         aria-label="Open user menu"
-        className="flex items-center rounded-full ring-offset-2 ring-offset-[var(--brand-surface)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)]"
+        className={`flex items-center rounded-full ring-offset-2 ring-offset-[var(--brand-surface)] transition hover:opacity-90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--brand-primary)] ${
+          scopeLabel
+            ? "gap-2 rounded-full bg-[var(--brand-surface-strong)] py-1 pl-3 pr-1"
+            : ""
+        }`}
       >
+        {scopeLabel && (
+          <span className="hidden max-w-[140px] truncate text-sm font-medium text-[var(--brand-foreground)] sm:inline">
+            {scopeLabel}
+          </span>
+        )}
         <Avatar user={user} />
       </button>
 
