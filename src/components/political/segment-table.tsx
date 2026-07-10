@@ -267,13 +267,7 @@ export function SegmentTable({
     [segmentId],
   );
 
-  // Initial load
-  useEffect(() => {
-    fetchPage({ page, pageSize, search, sortCol, sortDir });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  // Re-fetch when page/pageSize/search/sort changes
+  // Fetch on mount and whenever page/pageSize/search/sort changes.
   useEffect(() => {
     fetchPage({ page, pageSize, search, sortCol, sortDir });
   }, [page, pageSize, search, sortCol, sortDir, fetchPage]);
