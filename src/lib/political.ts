@@ -1,12 +1,13 @@
-import { apiList } from "@/lib/api";
+import { apiGet, apiList } from "@/lib/api";
 import { getScopeContext, type ScopeContext } from "@/lib/scope";
-import type { BackstageDeliverable, DeliverableFile, Client } from "@/types/api";
+import type { Client } from "@/types/api";
 import {
   POLITICAL_VIEWS,
   POLITICAL_VIEW_META,
   type PoliticalView,
   type PoliticalColumn,
-  type PoliticalFileRow,
+  type PoliticalListRow,
+  type PoliticalRecordRow,
 } from "@/lib/political-types";
 
 export {
@@ -14,48 +15,110 @@ export {
   POLITICAL_VIEW_META,
   type PoliticalView,
   type PoliticalColumn,
-  type PoliticalFileRow,
+  type PoliticalListRow,
+  type PoliticalRecordRow,
 };
 
 /**
  * Political dashboard data layer.
  *
- * The Political tab surfaces *files* (not deliverables) that belong to a
- * political field program, grouped into three views:
- *   - walk        → door-knocking / canvass walk lists
- *   - call        → phone-bank call lists
- *   - fundraising → donor / fundraising lists
+ * The Political tab surfaces the walk / call / fundraising lists a client's
+ * field program runs off of. Those lists are DataStore **segments** built over
+ * the client's assigned master voter file:
  *
- * Files live inside deliverables (`deliverable.file_details[]`) and are tagged
- * for a view via their free-form `meta` object:
+ *   Client → DataStore (kind=voter_file, the master voter file)
+ *          → Segment   (purpose = walk | call | fundraising | sms)
+ *          → resolved member rows (the actual voters/donors)
  *
- *   file.meta.view_template = "walk" | "call" | "fundraising"
+ * We rebuild each view directly from those segments instead of from tagged
+ * deliverable files. The pipeline per active scope:
  *
- * Optional column control (per file) — defines the CSV columns to render.
- * Falls back to every scalar meta key (minus the control keys) when absent:
+ *   1. list the scope's voter-file DataStores        (/datastore/stores/)
+ *   2. list each store's segments                     (/datastore/segments/?store=)
+ *   3. bucket segments by `purpose` into the 3 views
+ *   4. resolve a bounded preview of rows per segment  (/segments/<id>/resolve/)
  *
- *   file.meta.columns = [{ key: "street", label: "Street" }, ...]
- *
- * All other scalar meta entries are treated as data cells. This keeps the
- * contract self-documenting and additive: the backend can attach whatever
- * columns a given program needs without a frontend change.
+ * Full CSV export streams straight from the backend segment `export` endpoint
+ * (authed blob download on the client — see political-list-view.tsx).
  */
 
-/** Reserved meta keys that are NOT rendered as data columns. */
-const CONTROL_KEYS = new Set([
-  "view_template",
-  "columns",
-  "allow_download",
-]);
+// ── Backend DataStore shapes (subset we consume) ────────────────────────────
+
+interface DataStoreColumn {
+  key: string;
+  label?: string;
+  type?: string;
+  sample?: unknown;
+}
+
+interface DataStore {
+  id: string;
+  client: string; // client UUID
+  name: string;
+  slug: string;
+  kind: string; // "voter_file" | "donor_file" | ...
+  columns?: DataStoreColumn[] | null;
+  row_count?: number;
+  status?: string;
+}
+
+interface Segment {
+  id: string;
+  store: string; // store UUID
+  name: string;
+  slug: string;
+  description?: string;
+  purpose: string; // "walk" | "call" | "fundraising" | "sms" | ...
+  count?: number;
+  is_live?: boolean;
+}
+
+interface ResolveResponse {
+  count: number;
+  results: Record<string, unknown>[];
+}
+
+/** How many rows to pull for the in-app preview table (full set exports to CSV). */
+const PREVIEW_LIMIT = 100;
+
+/** Voter/donor store kinds that back a political field program. */
+const POLITICAL_STORE_KINDS = new Set(["voter_file", "donor_file", "contact_file"]);
+
+/**
+ * Map a segment `purpose` onto a dashboard view.
+ *
+ * Explicit field-channel purposes win. The DataStore also supports broader
+ * program purposes (`generic` canvass segments, `sms`/phone segments, `donor`)
+ * — we fold those onto the closest field view so a client's existing voter-file
+ * segments populate the walk / call / fundraising tabs without re-seeding:
+ *
+ *   walk        ← walk | canvass | door | generic (general canvass universes)
+ *   call        ← call | phone | sms | text
+ *   fundraising ← fundraising | donor | finance
+ *
+ * Anything unrecognised is hidden from this dashboard.
+ */
+function purposeToView(purpose: unknown): PoliticalView | null {
+  if (typeof purpose !== "string") return null;
+  const p = purpose.trim().toLowerCase();
+  if ((POLITICAL_VIEWS as string[]).includes(p)) return p as PoliticalView;
+  if (["canvass", "door", "generic", "walklist", "walk_list"].includes(p)) {
+    return "walk";
+  }
+  if (["phone", "sms", "text", "calllist", "call_list"].includes(p)) {
+    return "call";
+  }
+  if (["donor", "finance", "fund", "fundraise"].includes(p)) {
+    return "fundraising";
+  }
+  return null;
+}
 
 // ---------------------------------------------------------------------------
 // Niche gating — only surface Political for political/public-affairs clients
+// (unchanged: still gates the nav link + route)
 // ---------------------------------------------------------------------------
 
-/**
- * Substrings (lowercased) that mark a client as political / public-affairs.
- * Matched against the client's niche/industry hints in meta + brand_info.
- */
 const POLITICAL_NICHE_MATCHERS = [
   "political",
   "public affairs",
@@ -64,7 +127,6 @@ const POLITICAL_NICHE_MATCHERS = [
   "publicaffairs",
 ];
 
-/** Meta keys that may carry the niche/industry label. */
 const NICHE_KEYS = ["niche", "industry", "vertical", "sector", "category"];
 
 function collectNicheStrings(bag?: Record<string, unknown>): string[] {
@@ -98,10 +160,6 @@ export function clientIsPolitical(client: Client): boolean {
 /**
  * True when the ACTIVE scope includes at least one political/public-affairs
  * client. Gates the Political nav link + route.
- *
- *   client scope  → that one client's niche
- *   partner scope → any client belonging to the partner
- *   all scope     → any accessible client (admin/global view)
  */
 export function scopeHasPoliticalNiche(ctx: ScopeContext): boolean {
   const { active, clients } = ctx;
@@ -118,126 +176,174 @@ export function scopeHasPoliticalNiche(ctx: ScopeContext): boolean {
   return relevant.some(clientIsPolitical);
 }
 
-function scalarToString(v: unknown): string | null {
-  if (v === null || v === undefined) return null;
+// ── Row / column shaping ────────────────────────────────────────────────────
+
+function scalarToString(v: unknown): string {
+  if (v === null || v === undefined) return "";
   if (typeof v === "string") return v;
   if (typeof v === "number" || typeof v === "boolean") return String(v);
-  return null; // skip objects/arrays — not scalar cell data
+  return ""; // skip objects/arrays — not scalar cell data
 }
 
-function normalizeView(raw: unknown): PoliticalView | null {
-  if (typeof raw !== "string") return null;
-  const v = raw.trim().toLowerCase();
-  return (POLITICAL_VIEWS as string[]).includes(v) ? (v as PoliticalView) : null;
-}
-
-function deriveColumns(meta: Record<string, unknown>): PoliticalColumn[] {
-  // Explicit column declaration wins.
-  const declared = meta.columns;
-  if (Array.isArray(declared)) {
-    const cols = declared
-      .map((c) => {
-        if (c && typeof c === "object" && "key" in c) {
-          const key = String((c as Record<string, unknown>).key);
-          const label =
-            "label" in c
-              ? String((c as Record<string, unknown>).label)
-              : key;
-          return { key, label };
-        }
-        if (typeof c === "string") return { key: c, label: c };
-        return null;
-      })
-      .filter((c): c is PoliticalColumn => Boolean(c && c.key));
-    if (cols.length) return cols;
-  }
-
-  // Fall back: every scalar meta key that isn't a control key.
-  return Object.keys(meta)
-    .filter((k) => !CONTROL_KEYS.has(k) && scalarToString(meta[k]) !== null)
-    .map((k) => ({
-      key: k,
-      label: k
-        .replace(/[_-]+/g, " ")
-        .replace(/\b\w/g, (m) => m.toUpperCase()),
-    }));
-}
-
-function fileToRow(
-  file: DeliverableFile,
-  view: PoliticalView,
-  ctx: { deliverableName: string; projectName?: string; clientName?: string },
-): PoliticalFileRow {
-  const meta = (file.meta ?? {}) as Record<string, unknown>;
-  const columns = deriveColumns(meta);
-
-  const cells: Record<string, string> = {};
-  for (const col of columns) {
-    cells[col.key] = scalarToString(meta[col.key]) ?? "";
-  }
-
-  return {
-    id: file.id,
-    name: file.name,
-    url: file.url,
-    mime_type: file.mime_type,
-    size: file.size,
-    view,
-    allowDownload: meta.allow_download !== false,
-    deliverableName: ctx.deliverableName,
-    projectName: ctx.projectName,
-    clientName: ctx.clientName,
-    columns,
-    cells,
-    file,
-  };
+function titleize(key: string): string {
+  return key.replace(/[_-]+/g, " ").replace(/\b\w/g, (m) => m.toUpperCase());
 }
 
 /**
- * Fetch every scoped deliverable, flatten its files, and keep only those
- * tagged with a political view. Returns rows grouped by view.
+ * Choose the columns to render for a voter-file segment. Uses the source
+ * store's canonical column order (source CSV order) so the preview matches the
+ * exported CSV. Trimmed to a readable lead set; the full CSV export keeps every
+ * column.
  */
-export async function getPoliticalRows(
-  scopeCtx?: ScopeContext,
-): Promise<Record<PoliticalView, PoliticalFileRow[]>> {
-  const ctx = scopeCtx ?? (await getScopeContext());
+function deriveColumns(store: DataStore): PoliticalColumn[] {
+  const declared = (store.columns ?? []).filter((c) => c && c.key);
 
-  let path = "/api/v1/deliverables/";
-  if (ctx.active.type === "partner") {
-    path += `?partner=${encodeURIComponent(ctx.active.slug)}`;
-  } else if (ctx.active.type === "client") {
-    path += `?client=${encodeURIComponent(ctx.active.slug)}`;
+  // Prefer a compact, human-friendly lead set when the source uses the known
+  // GOPDC voter-file schema; otherwise fall back to the first N store columns.
+  const PREFERRED_ORDER = [
+    "LastName",
+    "FirstName",
+    "OfficialParty",
+    // Residence / address (GOPDC master-voter-file schema)
+    "PrimaryAddress1",
+    "ResidenceAddress",
+    "Address",
+    "PrimaryCity",
+    "ResidenceCity",
+    "City",
+    "PrimaryZip",
+    "Zip",
+    "ZipCode",
+    // Contact
+    "PrimaryPhone",
+    "Phone",
+    "Mobile",
+    "EMail",
+    // Geography / turnout
+    "PrecinctName",
+    "CountyName",
+    "GeneralFrequency",
+    "PrimaryFrequency",
+  ];
+
+  const available = new Map(declared.map((c) => [c.key, c] as const));
+  const picked: PoliticalColumn[] = [];
+  for (const key of PREFERRED_ORDER) {
+    const col = available.get(key);
+    if (col) {
+      picked.push({ key: col.key, label: col.label || titleize(col.key) });
+      available.delete(key);
+    }
   }
 
-  const deliverables = await apiList<BackstageDeliverable>(path, { revalidate: 0 });
+  if (picked.length >= 3) return picked;
 
-  // Belt-and-suspenders scope filter (mirrors deliverables page).
-  const { activeClientIds } = ctx;
-  const scoped =
-    activeClientIds === null
-      ? deliverables
-      : deliverables.filter(
-          (d) => d.client_id != null && activeClientIds.includes(d.client_id),
-        );
+  // Fallback: first 12 store columns in canonical order.
+  return declared
+    .slice(0, 12)
+    .map((c) => ({ key: c.key, label: c.label || titleize(c.key) }));
+}
 
-  const grouped: Record<PoliticalView, PoliticalFileRow[]> = {
+function recordsToRows(
+  records: Record<string, unknown>[],
+  columns: PoliticalColumn[],
+): PoliticalRecordRow[] {
+  return records.map((rec, i) => {
+    const cells: Record<string, string> = {};
+    for (const col of columns) cells[col.key] = scalarToString(rec[col.key]);
+    return { id: `${i}`, cells };
+  });
+}
+
+// ── Main data fetch ─────────────────────────────────────────────────────────
+
+/**
+ * Fetch every scoped voter-file DataStore, list its segments, bucket them by
+ * purpose into the three political views, and attach a bounded preview of
+ * resolved rows to each. Returns lists grouped by view.
+ */
+export async function getPoliticalLists(
+  scopeCtx?: ScopeContext,
+): Promise<Record<PoliticalView, PoliticalListRow[]>> {
+  const ctx = scopeCtx ?? (await getScopeContext());
+
+  const grouped: Record<PoliticalView, PoliticalListRow[]> = {
     walk: [],
     call: [],
     fundraising: [],
   };
 
-  for (const d of scoped) {
-    for (const file of d.file_details ?? []) {
-      const view = normalizeView((file.meta ?? {}).view_template);
-      if (!view) continue;
-      grouped[view].push(
-        fileToRow(file, view, {
-          deliverableName: d.name,
-          projectName: d.project_name,
-          clientName: d.client_name,
+  // 1. Scoped voter-file stores. The backend already scopes /stores/ to the
+  //    user's accessible clients; we additionally constrain to the active
+  //    scope's client set (belt-and-suspenders, mirrors deliverables page).
+  const stores = await apiList<DataStore>("/api/v1/datastore/stores/", {
+    revalidate: 0,
+  });
+
+  const { activeClientIds } = ctx;
+  const clientNameById = new Map(ctx.clients.map((c) => [c.id, c.name] as const));
+
+  const politicalStores = stores.filter((s) => {
+    if (!POLITICAL_STORE_KINDS.has(s.kind)) return false;
+    if (activeClientIds === null) return true; // admin / all scope
+    return activeClientIds.includes(s.client);
+  });
+
+  if (politicalStores.length === 0) return grouped;
+
+  // 2 + 3 + 4. For each store, list segments, bucket, and resolve previews.
+  await Promise.all(
+    politicalStores.map(async (store) => {
+      const columns = deriveColumns(store);
+      const clientName = clientNameById.get(store.client);
+
+      const segments = await apiList<Segment>(
+        `/api/v1/datastore/segments/?store=${encodeURIComponent(store.id)}`,
+        { revalidate: 0 },
+      );
+
+      const political = segments
+        .map((seg) => ({ seg, view: purposeToView(seg.purpose) }))
+        .filter((x): x is { seg: Segment; view: PoliticalView } => x.view !== null);
+
+      await Promise.all(
+        political.map(async ({ seg, view }) => {
+          const resolved = await apiGet<ResolveResponse>(
+            `/api/v1/datastore/segments/${encodeURIComponent(
+              seg.id,
+            )}/resolve/?limit=${PREVIEW_LIMIT}&offset=0`,
+            { revalidate: 0 },
+          );
+
+          const records = resolved?.results ?? [];
+          const count = resolved?.count ?? seg.count ?? records.length;
+          const preview = recordsToRows(records, columns);
+
+          grouped[view].push({
+            id: seg.id,
+            name: seg.name,
+            slug: seg.slug,
+            description: seg.description,
+            view,
+            count,
+            columns,
+            preview,
+            hasMore: count > preview.length,
+            storeName: store.name,
+            clientName,
+          });
         }),
       );
-    }
+    }),
+  );
+
+  // Stable ordering: by client, then segment name.
+  for (const view of POLITICAL_VIEWS) {
+    grouped[view].sort(
+      (a, b) =>
+        (a.clientName ?? "").localeCompare(b.clientName ?? "") ||
+        a.name.localeCompare(b.name),
+    );
   }
 
   return grouped;

@@ -5,14 +5,14 @@ import {
   POLITICAL_VIEWS,
   POLITICAL_VIEW_META,
   type PoliticalView,
-  type PoliticalFileRow,
+  type PoliticalListRow,
 } from "@/lib/political-types";
 import { PoliticalListView } from "@/components/political/political-list-view";
 
 export function PoliticalTabs({
   grouped,
 }: {
-  grouped: Record<PoliticalView, PoliticalFileRow[]>;
+  grouped: Record<PoliticalView, PoliticalListRow[]>;
 }) {
   const [active, setActive] = useState<PoliticalView>("walk");
 
@@ -63,7 +63,7 @@ export function PoliticalTabs({
               {POLITICAL_VIEW_META[view].blurb}
             </p>
             <PoliticalListView
-              rows={grouped[view]}
+              lists={grouped[view]}
               viewLabel={POLITICAL_VIEW_META[view].label}
               blurb={POLITICAL_VIEW_META[view].blurb}
             />

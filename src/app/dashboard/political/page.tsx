@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getScopeContext } from "@/lib/scope";
 import {
-  getPoliticalRows,
+  getPoliticalLists,
   scopeHasPoliticalNiche,
   POLITICAL_VIEWS,
 } from "@/lib/political";
@@ -19,14 +19,18 @@ export default async function PoliticalPage() {
     redirect("/dashboard");
   }
 
-  const grouped = await getPoliticalRows(scopeCtx);
+  const grouped = await getPoliticalLists(scopeCtx);
 
   const scopeHeading =
     scopeCtx.active.type === "partner" || scopeCtx.active.type === "client"
       ? `Political — ${scopeCtx.active.name}`
       : "Political";
 
-  const total = POLITICAL_VIEWS.reduce((n, v) => n + grouped[v].length, 0);
+  // Total voters/records across every list in scope.
+  const totalRecords = POLITICAL_VIEWS.reduce(
+    (n, v) => n + grouped[v].reduce((m, seg) => m + seg.count, 0),
+    0,
+  );
 
   return (
     <div className="space-y-8">
@@ -36,19 +40,19 @@ export default async function PoliticalPage() {
           {scopeHeading}
         </h1>
         <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          Walk, call, and fundraising lists for your field program — export any
-          view to CSV.
+          Walk, call, and fundraising lists built from your master voter file —
+          download any list as CSV.
         </p>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <StatsCard label="Walk Files" value={grouped.walk.length} />
-        <StatsCard label="Call Files" value={grouped.call.length} />
+        <StatsCard label="Walk Lists" value={grouped.walk.length} />
+        <StatsCard label="Call Lists" value={grouped.call.length} />
         <StatsCard
-          label="Fundraising Files"
+          label="Fundraising Lists"
           value={grouped.fundraising.length}
-          sub={`${total} total`}
+          sub={`${totalRecords.toLocaleString()} records`}
         />
       </div>
 

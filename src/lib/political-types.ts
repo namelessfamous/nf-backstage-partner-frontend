@@ -4,6 +4,10 @@
  * Kept separate from `political.ts` (which imports server-only data helpers)
  * so client components can import these without dragging server code into the
  * browser bundle.
+ *
+ * The Political dashboard sources its walk / call / fundraising lists from
+ * DataStore **segments** built over a client's assigned master voter file
+ * (see src/lib/political.ts). Each segment maps to a view via its `purpose`.
  */
 
 export type PoliticalView = "walk" | "call" | "fundraising";
@@ -16,15 +20,15 @@ export const POLITICAL_VIEW_META: Record<
 > = {
   walk: {
     label: "Walk",
-    blurb: "Door-to-door canvass walk lists scoped to the active program.",
+    blurb: "Door-to-door canvass walk lists built from your master voter file.",
   },
   call: {
     label: "Call",
-    blurb: "Phone-bank call lists scoped to the active program.",
+    blurb: "Phone-bank call lists built from your master voter file.",
   },
   fundraising: {
     label: "Fundraising",
-    blurb: "Donor and fundraising lists scoped to the active program.",
+    blurb: "Donor and fundraising lists built from your master voter file.",
   },
 };
 
@@ -33,19 +37,41 @@ export interface PoliticalColumn {
   label: string;
 }
 
-export interface PoliticalFileRow {
+/**
+ * A single voter/record row inside a segment. `cells` are pre-stringified
+ * scalar values keyed by column key so the table renders without further
+ * type juggling on the client.
+ */
+export interface PoliticalRecordRow {
+  /** Stable-ish key for React (index within the segment page). */
   id: string;
-  name: string;
-  url: string | null;
-  mime_type?: string | null;
-  size?: number | null;
-  view: PoliticalView;
-  allowDownload: boolean;
-  deliverableName: string;
-  projectName?: string;
-  clientName?: string;
-  columns: PoliticalColumn[];
   cells: Record<string, string>;
-  /** Raw file record, passed straight to the in-app file viewer. */
-  file: import("@/types/api").DeliverableFile;
+}
+
+/**
+ * One walk / call / fundraising list, backed by a DataStore segment over the
+ * client's master voter file.
+ */
+export interface PoliticalListRow {
+  /** Segment UUID. */
+  id: string;
+  /** Segment display name. */
+  name: string;
+  /** Segment slug. */
+  slug: string;
+  /** Optional segment description. */
+  description?: string;
+  view: PoliticalView;
+  /** Full resolved member count for the segment. */
+  count: number;
+  /** Columns to render (from the source store's canonical schema). */
+  columns: PoliticalColumn[];
+  /** A bounded preview of resolved rows for in-app display. */
+  preview: PoliticalRecordRow[];
+  /** True when more rows exist than the preview shows. */
+  hasMore: boolean;
+  /** Source DataStore name (the master voter file). */
+  storeName: string;
+  /** Owning client display name. */
+  clientName?: string;
 }
