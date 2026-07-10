@@ -25,14 +25,14 @@ export function DataTable<T extends { id: string }>({
   }
 
   return (
-    <div className="overflow-hidden overflow-x-auto rounded-3xl border border-black/5 bg-[var(--brand-surface)]">
-      <table className="w-full min-w-[40rem] text-sm">
+    <div className="w-full max-w-full overflow-x-auto rounded-3xl border border-black/5 bg-[var(--brand-surface)]">
+      <table className="w-full min-w-[36rem] text-xs sm:text-sm">
         <thead>
           <tr className="border-b border-black/5 bg-[var(--brand-surface-strong)]">
             {columns.map((col) => (
               <th
                 key={col.key}
-                className={`px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)] ${col.className ?? ""}`}
+                className={`px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs ${col.className ?? ""}`}
               >
                 {col.header}
               </th>
@@ -45,7 +45,7 @@ export function DataTable<T extends { id: string }>({
               {columns.map((col) => (
                 <td
                   key={col.key}
-                  className={`px-6 py-4 text-[var(--brand-foreground)] ${col.className ?? ""}`}
+                  className={`px-3 py-3 align-top text-[var(--brand-foreground)] sm:px-6 sm:py-4 ${col.className ?? ""}`}
                 >
                   {col.render(row)}
                 </td>

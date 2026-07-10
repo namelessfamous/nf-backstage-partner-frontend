@@ -8,12 +8,12 @@ export function StatsCard({
   sub?: string;
 }) {
   return (
-    <article className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
-      <p className="text-sm font-medium text-[var(--brand-muted)]">{label}</p>
-      <p className="mt-3 text-3xl font-semibold tabular-nums text-[var(--brand-foreground)]">
+    <article className="rounded-2xl bg-[var(--brand-surface-strong)] p-3 sm:rounded-3xl sm:p-5">
+      <p className="text-xs font-medium leading-tight text-[var(--brand-muted)] sm:text-sm">{label}</p>
+      <p className="mt-1.5 text-xl font-semibold tabular-nums text-[var(--brand-foreground)] sm:mt-3 sm:text-3xl">
         {value}
       </p>
-      {sub && <p className="mt-2 text-sm text-[var(--brand-muted)]">{sub}</p>}
+      {sub && <p className="mt-1 text-xs text-[var(--brand-muted)] sm:mt-2 sm:text-sm">{sub}</p>}
     </article>
   );
 }

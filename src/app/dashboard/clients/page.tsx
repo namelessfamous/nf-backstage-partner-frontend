@@ -106,21 +106,21 @@ export default async function ClientsPage({
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-[2rem] border border-black/5 bg-[var(--brand-surface)]">
+        <div className="max-w-full rounded-[2rem] border border-black/5 bg-[var(--brand-surface)]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[36rem] text-sm">
+            <table className="w-full min-w-[32rem] text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-black/5 bg-[var(--brand-surface-strong)]">
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">Name</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">Description</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">Added</th>
+                  <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">Name</th>
+                  <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">Description</th>
+                  <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">Added</th>
                   <th className="px-6 py-3 text-right text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/5">
                 {clients.map((client) => (
                   <tr key={client.id} className="group transition hover:bg-[var(--brand-surface-strong)]/50">
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 align-top sm:px-6 sm:py-4">
                       <Link
                         href={`/dashboard/clients/${client.slug}`}
                         className="font-medium text-[var(--brand-foreground)] hover:text-[var(--brand-primary)]"
@@ -128,13 +128,13 @@ export default async function ClientsPage({
                         {client.name}
                       </Link>
                     </td>
-                    <td className="px-6 py-4 text-[var(--brand-muted)]">
+                    <td className="px-3 py-3 align-top sm:px-6 sm:py-4 text-[var(--brand-muted)]">
                       <span className="line-clamp-1">{client.description ?? "—"}</span>
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-[var(--brand-muted)]">
+                    <td className="whitespace-nowrap px-3 py-3 align-top sm:px-6 sm:py-4 text-[var(--brand-muted)]">
                       {formatDate(client.created_at)}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 py-3 align-top text-right sm:px-6 sm:py-4">
                       <Link
                         href={`/dashboard/clients/${client.slug}`}
                         className="text-xs font-medium text-[var(--brand-primary)] opacity-0 transition group-hover:opacity-100"

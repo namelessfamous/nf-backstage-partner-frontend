@@ -189,16 +189,16 @@ export default async function ProjectsPage({
           }
         />
       ) : (
-        <div className="overflow-hidden rounded-[2rem] border border-black/5 bg-[var(--brand-surface)]">
+        <div className="max-w-full rounded-[2rem] border border-black/5 bg-[var(--brand-surface)]">
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[40rem] text-sm">
+            <table className="w-full min-w-[34rem] text-xs sm:text-sm">
               <thead>
                 <tr className="border-b border-black/5 bg-[var(--brand-surface-strong)]">
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">Project</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">Client</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">Status</th>
-                  <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">Updated</th>
-                  <th className="px-6 py-3"></th>
+                  <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">Project</th>
+                  <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">Client</th>
+                  <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">Status</th>
+                  <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">Updated</th>
+                  <th className="px-3 py-2.5 sm:px-6 sm:py-3"></th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-black/5">
@@ -207,7 +207,7 @@ export default async function ProjectsPage({
                     key={project.id}
                     className="group transition hover:bg-[var(--brand-surface-strong)]/50"
                   >
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 align-top sm:px-6 sm:py-4">
                       <Link
                         href={`/dashboard/projects/${project.slug}`}
                         className="font-medium text-[var(--brand-foreground)] hover:text-[var(--brand-primary)]"
@@ -220,7 +220,7 @@ export default async function ProjectsPage({
                         </p>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 align-top sm:px-6 sm:py-4">
                       {project.client_slug ? (
                         <Link
                           href={`/dashboard/clients/${project.client_slug}`}
@@ -234,13 +234,13 @@ export default async function ProjectsPage({
                         </span>
                       )}
                     </td>
-                    <td className="px-6 py-4">
+                    <td className="px-3 py-3 align-top sm:px-6 sm:py-4">
                       <StatusBadge status={project.status} />
                     </td>
-                    <td className="whitespace-nowrap px-6 py-4 text-[var(--brand-muted)]">
+                    <td className="whitespace-nowrap px-3 py-3 align-top sm:px-6 sm:py-4 text-[var(--brand-muted)]">
                       {formatDate(project.updated_at)}
                     </td>
-                    <td className="px-6 py-4 text-right">
+                    <td className="px-3 py-3 align-top text-right sm:px-6 sm:py-4">
                       <Link
                         href={`/dashboard/projects/${project.slug}`}
                         className="text-xs font-medium text-[var(--brand-primary)] opacity-0 transition group-hover:opacity-100"

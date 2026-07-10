@@ -42,7 +42,7 @@ export default async function PoliticalPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <StatsCard label="Walk Files" value={grouped.walk.length} />
         <StatsCard label="Call Files" value={grouped.call.length} />
         <StatsCard

@@ -230,7 +230,7 @@ function VersionBody({ version }: { version: ProposalVersion }) {
         return (
           <div
             key={section.id}
-            className="overflow-hidden rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] proposal-section"
+            className="max-w-full rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] proposal-section"
           >
             {/* Section header */}
             <div className="flex items-center justify-between gap-4 border-b border-black/5 bg-[var(--brand-surface-strong)] px-6 py-3">
@@ -244,7 +244,7 @@ function VersionBody({ version }: { version: ProposalVersion }) {
 
             {/* Line items */}
             <div className="overflow-x-auto">
-              <table className="w-full min-w-[40rem] text-sm">
+              <table className="w-full min-w-[34rem] text-xs sm:text-sm">
                 <thead>
                   <tr className="border-b border-black/5 text-xs uppercase tracking-wider text-[var(--brand-muted)]">
                     <th className="px-6 py-2.5 text-left font-semibold">Description</th>

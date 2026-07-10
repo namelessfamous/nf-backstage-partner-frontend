@@ -68,17 +68,17 @@ function ListGroup({
         </a>
       </div>
 
-      <div className="overflow-hidden overflow-x-auto rounded-3xl border border-black/5 bg-[var(--brand-surface)]">
-        <table className="w-full min-w-[40rem] text-sm">
+      <div className="max-w-full overflow-x-auto rounded-3xl border border-black/5 bg-[var(--brand-surface)]">
+        <table className="w-full min-w-[34rem] text-xs sm:text-sm">
           <thead>
             <tr className="border-b border-black/5 bg-[var(--brand-surface-strong)]">
-              <th className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]">
+              <th className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs">
                 File
               </th>
               {columns.map((col) => (
                 <th
                   key={col.key}
-                  className="px-6 py-3 text-left text-xs font-semibold uppercase tracking-wider text-[var(--brand-muted)]"
+                  className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs"
                 >
                   {col.label}
                 </th>
@@ -91,7 +91,7 @@ function ListGroup({
                 key={row.id}
                 className="transition hover:bg-[var(--brand-surface-strong)]/50"
               >
-                <td className="px-6 py-4 font-medium text-[var(--brand-foreground)]">
+                <td className="px-3 py-3 align-top font-medium text-[var(--brand-foreground)] sm:px-6 sm:py-4">
                   <button
                     type="button"
                     onClick={() => onOpen(row.file)}
@@ -109,7 +109,7 @@ function ListGroup({
                 {columns.map((col) => (
                   <td
                     key={col.key}
-                    className="px-6 py-4 text-[var(--brand-foreground)]"
+                    className="px-3 py-3 align-top text-[var(--brand-foreground)] sm:px-6 sm:py-4"
                   >
                     {row.cells[col.key] || (
                       <span className="text-[var(--brand-muted)]/40">—</span>

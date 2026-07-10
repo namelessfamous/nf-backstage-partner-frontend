@@ -174,7 +174,7 @@ export default async function BudgetPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid gap-4 sm:grid-cols-3">
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
         <StatsCard label="Approved Total" value={money(grandTotal)} />
         <StatsCard label="Approved Line Items" value={approvedLineCount} />
         <StatsCard
