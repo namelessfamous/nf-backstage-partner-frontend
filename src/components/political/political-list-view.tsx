@@ -5,6 +5,7 @@ import type {
   PoliticalListRow,
   PoliticalColumn,
 } from "@/lib/political-types";
+import { SegmentTable } from "@/components/political/segment-table";
 
 /**
  * List view for a single political view (walk / call / fundraising).
@@ -73,60 +74,6 @@ function ExportButton({ segment }: { segment: PoliticalListRow }) {
   );
 }
 
-function PreviewTable({
-  columns,
-  segment,
-}: {
-  columns: PoliticalColumn[];
-  segment: PoliticalListRow;
-}) {
-  if (segment.preview.length === 0) {
-    return (
-      <div className="rounded-2xl border border-dashed border-[var(--brand-muted)]/25 bg-[var(--brand-surface)] px-6 py-10 text-center text-sm text-[var(--brand-muted)]">
-        This list has no rows yet.
-      </div>
-    );
-  }
-
-  return (
-    <div className="max-w-full overflow-x-auto rounded-2xl border border-black/5 bg-[var(--brand-surface)]">
-      <table className="w-full min-w-[34rem] text-xs sm:text-sm">
-        <thead>
-          <tr className="border-b border-black/5 bg-[var(--brand-surface-strong)]">
-            {columns.map((col) => (
-              <th
-                key={col.key}
-                className="px-3 py-2.5 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)] sm:px-6 sm:py-3 sm:text-xs"
-              >
-                {col.label}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody className="divide-y divide-black/5">
-          {segment.preview.map((row) => (
-            <tr
-              key={row.id}
-              className="transition hover:bg-[var(--brand-surface-strong)]/50"
-            >
-              {columns.map((col) => (
-                <td
-                  key={col.key}
-                  className="px-3 py-3 align-top text-[var(--brand-foreground)] sm:px-6 sm:py-4"
-                >
-                  {row.cells[col.key] || (
-                    <span className="text-[var(--brand-muted)]/40">—</span>
-                  )}
-                </td>
-              ))}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-}
-
 function SegmentCard({ segment }: { segment: PoliticalListRow }) {
   return (
     <div className="space-y-3 rounded-3xl border border-black/5 bg-[var(--brand-surface-strong)]/40 p-4 sm:p-5">
@@ -153,15 +100,15 @@ function SegmentCard({ segment }: { segment: PoliticalListRow }) {
         <ExportButton segment={segment} />
       </div>
 
-      <PreviewTable columns={segment.columns} segment={segment} />
-
-      {segment.hasMore && (
-        <p className="text-[0.7rem] text-[var(--brand-muted)]">
-          Showing first {segment.preview.length.toLocaleString()} of{" "}
-          {segment.count.toLocaleString()} — download the full CSV for the
-          complete list.
-        </p>
-      )}
+      {/* Live-paginated table — fetches from the API per page. */}
+      <SegmentTable
+        segmentId={segment.id}
+        segmentName={segment.name}
+        storeName={segment.storeName}
+        slug={segment.slug}
+        columns={segment.columns}
+        initialCount={segment.count}
+      />
     </div>
   );
 }

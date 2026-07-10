@@ -78,8 +78,13 @@ interface ResolveResponse {
   results: Record<string, unknown>[];
 }
 
-/** How many rows to pull for the in-app preview table (full set exports to CSV). */
-const PREVIEW_LIMIT = 100;
+/**
+ * Minimal server fetch to get an accurate count per segment.
+ * The interactive SegmentTable fetches its own pages from the API proxy;
+ * we no longer ship preview rows in the RSC payload. Use limit=1 so the
+ * resolve endpoint returns the filtered total count with minimal data.
+ */
+const PREVIEW_LIMIT = 1;
 
 /** Voter/donor store kinds that back a political field program. */
 const POLITICAL_STORE_KINDS = new Set(["voter_file", "donor_file", "contact_file"]);
