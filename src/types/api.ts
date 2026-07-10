@@ -271,6 +271,23 @@ export interface BrandColorRole {
 
 export type BrandColors = Record<string, BrandColorRole>;
 
+/** A named logo package attached to a brand, with converted deliverables. */
+export interface BrandLogoPackage {
+  id: string;
+  brand: string;
+  name: string;
+  notes?: string;
+  source_file_url?: string | null;
+  source_format?: string;
+  /** pending | processing | ready | error */
+  status: string;
+  error?: string;
+  /** map of format key (svg/png/jpg/pdf/eps/ai) -> download URL */
+  outputs: Record<string, string>;
+  created_at: string;
+  updated_at: string;
+}
+
 /** List shape — GET /api/v1/brands/ (BrandListSerializer) */
 export interface BrandListItem {
   id: string;
@@ -296,6 +313,7 @@ export interface BrandDetail {
   meta?: Record<string, unknown>;
   client?: string | null;
   client_name?: string;
+  logo_packages?: BrandLogoPackage[];
   created_by?: string | null;
   created_at: string;
   updated_at: string;

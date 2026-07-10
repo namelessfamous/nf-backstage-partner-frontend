@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { apiGet } from "@/lib/api";
-import type { BrandDetail, BrandColorRole, BrandFont } from "@/types/api";
+import type { BrandDetail, BrandColorRole, BrandFont, BrandLogoPackage } from "@/types/api";
 
 const TONE_KEYS = ["50", "100", "200", "300", "400", "500", "600", "700", "800", "900", "950"];
 
@@ -132,6 +132,122 @@ function TypeSpecimen({ font }: { font: BrandFont }) {
   );
 }
 
+// Preferred display order for format download links. Raster previews first,
+// then vector deliverables.
+const FORMAT_ORDER = ["png", "jpg", "svg", "pdf", "eps", "ai"];
+// Formats we can render as an inline <img> preview thumbnail.
+const PREVIEWABLE = new Set(["png", "jpg", "jpeg", "svg"]);
+
+function orderedOutputs(outputs: Record<string, string>): [string, string][] {
+  const entries = Object.entries(outputs || {}).filter(([, url]) => !!url);
+  return entries.sort((a, b) => {
+    const ia = FORMAT_ORDER.indexOf(a[0]);
+    const ib = FORMAT_ORDER.indexOf(b[0]);
+    return (ia === -1 ? 99 : ia) - (ib === -1 ? 99 : ib);
+  });
+}
+
+function DownloadIcon() {
+  return (
+    <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3" />
+    </svg>
+  );
+}
+
+function LogoPackageAccordion({ pkg }: { pkg: BrandLogoPackage }) {
+  const outputs = orderedOutputs(pkg.outputs);
+  const previews = outputs.filter(([fmt]) => PREVIEWABLE.has(fmt));
+  const isReady = pkg.status === "ready";
+  const statusLabel =
+    pkg.status === "ready"
+      ? `${outputs.length} file${outputs.length === 1 ? "" : "s"}`
+      : pkg.status === "error"
+        ? "Conversion failed"
+        : pkg.status === "processing"
+          ? "Processing\u2026"
+          : "Pending";
+
+  return (
+    <details className="group overflow-hidden rounded-[2rem] border border-black/5 bg-[var(--brand-surface)]">
+      <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-6 py-4 [&::-webkit-details-marker]:hidden">
+        <div className="flex min-w-0 items-center gap-3">
+          <span className="text-sm font-semibold text-[var(--brand-foreground)]">{pkg.name}</span>
+          <span
+            className={
+              "shrink-0 rounded-full px-2 py-0.5 text-[10px] font-medium uppercase tracking-wide " +
+              (isReady
+                ? "bg-[var(--brand-primary)]/10 text-[var(--brand-primary)]"
+                : pkg.status === "error"
+                  ? "bg-red-500/10 text-red-600"
+                  : "bg-[var(--brand-surface-strong)] text-[var(--brand-muted)]")
+            }
+          >
+            {statusLabel}
+          </span>
+        </div>
+        <svg
+          className="h-4 w-4 shrink-0 text-[var(--brand-muted)] transition-transform group-open:rotate-180"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={2}
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+        </svg>
+      </summary>
+
+      <div className="border-t border-black/5 px-6 py-5">
+        {pkg.notes && (
+          <p className="mb-4 text-xs text-[var(--brand-muted)]">{pkg.notes}</p>
+        )}
+
+        {!isReady ? (
+          <p className="text-xs text-[var(--brand-muted)]">
+            {pkg.status === "error"
+              ? pkg.error || "This package could not be converted."
+              : "Deliverables are still being generated. Check back shortly."}
+          </p>
+        ) : (
+          <>
+            {previews.length > 0 && (
+              <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+                {previews.map(([fmt, url]) => (
+                  <div
+                    key={`preview-${fmt}`}
+                    className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-[var(--brand-surface-strong)] p-3"
+                  >
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={url}
+                      alt={`${pkg.name} ${fmt.toUpperCase()} preview`}
+                      className="max-h-full max-w-full object-contain"
+                    />
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="flex flex-wrap gap-2">
+              {outputs.map(([fmt, url]) => (
+                <a
+                  key={`dl-${fmt}`}
+                  href={url}
+                  download
+                  className="inline-flex items-center gap-1.5 rounded-full border border-black/5 bg-[var(--brand-surface-strong)] px-3 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:bg-[var(--brand-primary)]/10 hover:text-[var(--brand-primary)]"
+                >
+                  <DownloadIcon />
+                  {fmt.toUpperCase()}
+                </a>
+              ))}
+            </div>
+          </>
+        )}
+      </div>
+    </details>
+  );
+}
+
 export default async function BrandDetailPage({
   params,
 }: {
@@ -217,6 +333,18 @@ export default async function BrandDetailPage({
           <div className="grid grid-cols-1 gap-4">
             {brand.typography.map((f, i) => (
               <TypeSpecimen key={`${f.type}-${f.family}-${i}`} font={f} />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/* Logo packages */}
+      {(brand.logo_packages?.length ?? 0) > 0 && (
+        <section className="space-y-3">
+          <h2 className="text-lg font-semibold text-[var(--brand-foreground)]">Logo Packages</h2>
+          <div className="grid grid-cols-1 gap-3">
+            {brand.logo_packages!.map((pkg) => (
+              <LogoPackageAccordion key={pkg.id} pkg={pkg} />
             ))}
           </div>
         </section>
