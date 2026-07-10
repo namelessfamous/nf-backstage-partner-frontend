@@ -117,13 +117,14 @@ export function NavFlyout({ href, label, icon, entries, onNavigate }: Props) {
           <span className="text-[var(--brand-nav-icon)]">{icon}</span>
           {label}
         </Link>
-        {/* Flyout toggle (mainly for touch / keyboard). */}
+        {/* Flyout toggle — desktop only. On mobile the sidebar is the nav and
+            the row links straight to the list page, so the flyout is hidden. */}
         <button
           type="button"
           aria-label={`Browse ${label}`}
           aria-expanded={open}
           onClick={() => setOpen((o) => !o)}
-          className="shrink-0 rounded-md p-0.5 opacity-70 transition hover:opacity-100"
+          className="hidden shrink-0 rounded-md p-0.5 opacity-70 transition hover:opacity-100 lg:inline-flex"
           style={{ color: "var(--brand-sidebar-text)" }}
         >
           <svg
@@ -140,7 +141,7 @@ export function NavFlyout({ href, label, icon, entries, onNavigate }: Props) {
 
       {open && (
         <div
-          className="absolute left-full top-0 z-40 ml-1 w-72 lg:ml-2"
+          className="absolute left-full top-0 z-40 ml-1 hidden w-72 lg:ml-2 lg:block"
           onMouseEnter={cancelClose}
           onMouseLeave={scheduleClose}
         >
@@ -188,7 +189,7 @@ export function NavFlyout({ href, label, icon, entries, onNavigate }: Props) {
                         setOpen(false);
                         onNavigate?.();
                       }}
-                      className={`flex items-baseline justify-between gap-2 rounded-xl px-3 py-2 text-sm transition hover:bg-[var(--brand-surface-strong)] ${
+                      className={`flex min-w-0 flex-col gap-0.5 rounded-xl px-3 py-2 text-sm transition hover:bg-[var(--brand-surface-strong)] ${
                         active
                           ? "font-semibold text-[var(--brand-primary)]"
                           : "text-[var(--brand-foreground)]"
@@ -196,7 +197,7 @@ export function NavFlyout({ href, label, icon, entries, onNavigate }: Props) {
                     >
                       <span className="truncate">{e.label}</span>
                       {e.sub && (
-                        <span className="ml-2 shrink-0 truncate text-[11px] text-[var(--brand-muted)]">
+                        <span className="truncate text-[11px] text-[var(--brand-muted)]">
                           {e.sub}
                         </span>
                       )}
