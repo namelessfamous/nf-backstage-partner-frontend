@@ -72,6 +72,21 @@ export interface PoliticalListRow {
   hasMore: boolean;
   /** Source DataStore name (the master voter file). */
   storeName: string;
+  /** Source DataStore UUID — the master voter file store. */
+  storeId: string;
   /** Owning client display name. */
   clientName?: string;
+}
+
+/**
+ * A political voter-file DataStore with its row count.
+ * Used for store-level stats (Change 1 — totals from master voter file).
+ */
+export interface PoliticalStore {
+  id: string;
+  name: string;
+  kind: string;
+  rowCount: number;
+  clientName?: string;
+  columns?: Array<{ key: string; label?: string }>;
 }

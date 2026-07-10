@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 import { getScopeContext } from "@/lib/scope";
 import {
   getPoliticalLists,
+  getPoliticalStores,
   scopeHasPoliticalNiche,
   POLITICAL_VIEWS,
   POLITICAL_VIEW_META,
@@ -25,18 +26,22 @@ export default async function PoliticalPage() {
     redirect("/dashboard");
   }
 
-  const grouped = await getPoliticalLists(scopeCtx);
+  const [grouped, politicalStores] = await Promise.all([
+    getPoliticalLists(scopeCtx),
+    getPoliticalStores(scopeCtx),
+  ]);
 
   const scopeHeading =
     scopeCtx.active.type === "partner" || scopeCtx.active.type === "client"
       ? `Political — ${scopeCtx.active.name}`
       : "Political";
 
-  // Total records across every view.
-  const totalRecords = POLITICAL_VIEWS.reduce(
-    (n, v) => n + grouped[v].reduce((m, seg) => m + seg.count, 0),
-    0,
-  );
+  // Change 1: Total records = SUM of master voter file store row_count values.
+  const voterFileTotal = politicalStores.reduce((n, s) => n + s.rowCount, 0);
+  const voterFileLabel =
+    politicalStores.length === 1
+      ? politicalStores[0].name
+      : `${politicalStores.length} voter files`;
 
   return (
     <div className="space-y-8">
@@ -51,15 +56,16 @@ export default async function PoliticalPage() {
         </p>
       </div>
 
-      {/* Overview stats */}
-      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+      {/* Overview stats — totals from master voter file, not segment sums */}
+      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
+        <StatsCard
+          label="Voter File Records"
+          value={voterFileTotal.toLocaleString()}
+          sub={voterFileLabel}
+        />
         <StatsCard label="Walk Lists" value={grouped.walk.length} />
         <StatsCard label="Call Lists" value={grouped.call.length} />
-        <StatsCard
-          label="Fundraising Lists"
-          value={grouped.fundraising.length}
-          sub={`${totalRecords.toLocaleString()} records`}
-        />
+        <StatsCard label="Fundraising Lists" value={grouped.fundraising.length} />
       </div>
 
       {/* Submodule navigation cards */}
@@ -71,7 +77,6 @@ export default async function PoliticalPage() {
           {POLITICAL_VIEWS.map((view) => {
             const meta = POLITICAL_VIEW_META[view];
             const lists = grouped[view];
-            const records = lists.reduce((n, seg) => n + seg.count, 0);
             return (
               <Link
                 key={view}
@@ -89,7 +94,7 @@ export default async function PoliticalPage() {
                     {lists.length}
                   </span>
                   <span className="text-xs text-[var(--brand-muted)]">
-                    {records.toLocaleString()} records
+                    {voterFileTotal.toLocaleString()} voter file records
                   </span>
                 </div>
                 <p className="mt-0.5 text-[0.65rem] text-[var(--brand-muted)]">

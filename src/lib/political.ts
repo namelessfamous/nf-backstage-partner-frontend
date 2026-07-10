@@ -8,6 +8,7 @@ import {
   type PoliticalColumn,
   type PoliticalListRow,
   type PoliticalRecordRow,
+  type PoliticalStore,
 } from "@/lib/political-types";
 
 export {
@@ -17,6 +18,7 @@ export {
   type PoliticalColumn,
   type PoliticalListRow,
   type PoliticalRecordRow,
+  type PoliticalStore,
 };
 
 /**
@@ -335,6 +337,7 @@ export async function getPoliticalLists(
             preview,
             hasMore: count > preview.length,
             storeName: store.name,
+            storeId: store.id,
             clientName,
           });
         }),
@@ -352,4 +355,38 @@ export async function getPoliticalLists(
   }
 
   return grouped;
+}
+
+/**
+ * Fetch the scoped voter-file DataStores with their row counts.
+ * Used for store-level stats (total rows in the master voter file)
+ * rather than summing segment counts. Keeps getPoliticalLists return shape
+ * unchanged so all existing callers continue to work.
+ */
+export async function getPoliticalStores(
+  scopeCtx?: ScopeContext,
+): Promise<PoliticalStore[]> {
+  const ctx = scopeCtx ?? (await getScopeContext());
+  const clientNameById = new Map(ctx.clients.map((c) => [c.id, c.name] as const));
+
+  const stores = await apiList<DataStore>("/api/v1/datastore/stores/", {
+    revalidate: 0,
+  });
+
+  const { activeClientIds } = ctx;
+
+  return stores
+    .filter((s) => {
+      if (!POLITICAL_STORE_KINDS.has(s.kind)) return false;
+      if (activeClientIds === null) return true;
+      return activeClientIds.includes(s.client);
+    })
+    .map((s) => ({
+      id: s.id,
+      name: s.name,
+      kind: s.kind,
+      rowCount: s.row_count ?? 0,
+      clientName: clientNameById.get(s.client),
+      columns: (s.columns ?? []).map((c) => ({ key: c.key, label: c.label })),
+    }));
 }

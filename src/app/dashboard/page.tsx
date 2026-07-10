@@ -14,11 +14,13 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import {
   getPoliticalLists,
+  getPoliticalStores,
   scopeHasPoliticalNiche,
   POLITICAL_VIEWS,
   POLITICAL_VIEW_META,
   type PoliticalListRow,
   type PoliticalView,
+  type PoliticalStore,
 } from "@/lib/political";
 
 function formatDate(iso?: string | null): string | null {
@@ -130,9 +132,13 @@ export default async function DashboardPage() {
     call: [],
     fundraising: [],
   };
+  let politicalStores: PoliticalStore[] = [];
   if (hasPolitical) {
     try {
-      politicalGrouped = await getPoliticalLists(scopeCtx);
+      [politicalGrouped, politicalStores] = await Promise.all([
+        getPoliticalLists(scopeCtx),
+        getPoliticalStores(scopeCtx),
+      ]);
     } catch {
       // Degrade gracefully — non-political or failed fetches never break main dashboard.
     }
@@ -268,15 +274,16 @@ export default async function DashboardPage() {
             </Link>
           </div>
 
-          {/* Aggregate stats */}
+          {/* Aggregate stats — row count from master voter file store, not segment sums */}
           <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
             <StatsCard
-              label="Total Records"
-              value={POLITICAL_VIEWS.reduce(
-                (n, v) => n + politicalGrouped[v].reduce((m, seg) => m + seg.count, 0),
-                0,
-              ).toLocaleString()}
-              sub="across all lists"
+              label="Voter File Records"
+              value={politicalStores.reduce((n, s) => n + s.rowCount, 0).toLocaleString()}
+              sub={
+                politicalStores.length === 1
+                  ? politicalStores[0].name
+                  : `${politicalStores.length} voter files`
+              }
             />
             <StatsCard label="Walk Lists" value={politicalGrouped.walk.length} />
             <StatsCard label="Call Lists" value={politicalGrouped.call.length} />
