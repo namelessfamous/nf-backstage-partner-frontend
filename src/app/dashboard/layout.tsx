@@ -6,6 +6,7 @@ import { getPartnerContext } from "@/lib/partner-context";
 import { getScopeContext } from "@/lib/scope";
 import { DashboardShell, type NavData } from "@/components/dashboard/shell";
 import { buildNavData } from "@/lib/nav-data";
+import { scopeHasPoliticalNiche } from "@/lib/political";
 import { SessionExpiredError } from "@/lib/api";
 import { buildReauthUrl } from "@/lib/reauth";
 
@@ -54,12 +55,15 @@ export default async function DashboardLayout({
     throw err;
   }
 
+  const showPolitical = scopeHasPoliticalNiche(scopeCtx);
+
   return (
     <DashboardShell
       partner={partner}
       user={session?.user ?? undefined}
       scopeCtx={scopeCtx}
       navData={navData}
+      showPolitical={showPolitical}
     >
       {children}
     </DashboardShell>

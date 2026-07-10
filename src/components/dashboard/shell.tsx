@@ -224,10 +224,12 @@ type Props = {
   user?: Session["user"];
   scopeCtx: ScopeContext;
   navData: NavData;
+  /** Show the Political nav link — true only for political/public-affairs scope. */
+  showPolitical: boolean;
   children: React.ReactNode;
 };
 
-export function DashboardShell({ partner, user, scopeCtx, navData, children }: Props) {
+export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical, children }: Props) {
   const pathname = usePathname();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
@@ -295,20 +297,22 @@ export function DashboardShell({ partner, user, scopeCtx, navData, children }: P
           {DASHBOARD_ITEM.label}
         </Link>
 
-        {/* Political dashboard link */}
-        <Link
-          href={POLITICAL_ITEM.href}
-          onClick={closeSidebar}
-          style={{ color: "var(--brand-sidebar-text)" }}
-          className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-            pathname.startsWith("/dashboard/political")
-              ? "bg-[var(--brand-sidebar-text)]/15"
-              : "hover:bg-[var(--brand-sidebar-text)]/10"
-          }`}
-        >
-          <span className="text-[var(--brand-nav-icon)]">{POLITICAL_ITEM.icon}</span>
-          {POLITICAL_ITEM.label}
-        </Link>
+        {/* Political dashboard link — only for political/public-affairs scope */}
+        {showPolitical && (
+          <Link
+            href={POLITICAL_ITEM.href}
+            onClick={closeSidebar}
+            style={{ color: "var(--brand-sidebar-text)" }}
+            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+              pathname.startsWith("/dashboard/political")
+                ? "bg-[var(--brand-sidebar-text)]/15"
+                : "hover:bg-[var(--brand-sidebar-text)]/10"
+            }`}
+          >
+            <span className="text-[var(--brand-nav-icon)]">{POLITICAL_ITEM.icon}</span>
+            {POLITICAL_ITEM.label}
+          </Link>
+        )}
 
         {/* Divider between Dashboard and resource group */}
         <div

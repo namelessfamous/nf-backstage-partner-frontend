@@ -23,6 +23,11 @@ export interface Client {
   website?: string;
   partner?: string | null;
   partner_name?: string;
+  client_type?: string;
+  /** Free-form client metadata (niche, tags, etc.) from the backstage API. */
+  meta?: Record<string, unknown>;
+  /** Brand config blob; may also carry a `niche` hint. */
+  brand_info?: Record<string, unknown>;
   created_at: string;
 }
 

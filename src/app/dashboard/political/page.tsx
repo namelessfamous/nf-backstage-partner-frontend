@@ -1,5 +1,10 @@
+import { redirect } from "next/navigation";
 import { getScopeContext } from "@/lib/scope";
-import { getPoliticalRows, POLITICAL_VIEWS } from "@/lib/political";
+import {
+  getPoliticalRows,
+  scopeHasPoliticalNiche,
+  POLITICAL_VIEWS,
+} from "@/lib/political";
 import { StatsCard } from "@/components/ui/stats-card";
 import { PoliticalTabs } from "@/components/political/political-tabs";
 
@@ -7,6 +12,13 @@ export const dynamic = "force-dynamic";
 
 export default async function PoliticalPage() {
   const scopeCtx = await getScopeContext();
+
+  // Gate: only political / public-affairs scope may view this page.
+  // Direct-URL access outside that niche bounces back to the dashboard.
+  if (!scopeHasPoliticalNiche(scopeCtx)) {
+    redirect("/dashboard");
+  }
+
   const grouped = await getPoliticalRows(scopeCtx);
 
   const scopeHeading =

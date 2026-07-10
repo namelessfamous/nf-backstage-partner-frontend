@@ -1,6 +1,6 @@
 import { apiList } from "@/lib/api";
 import { getScopeContext, type ScopeContext } from "@/lib/scope";
-import type { BackstageDeliverable, DeliverableFile } from "@/types/api";
+import type { BackstageDeliverable, DeliverableFile, Client } from "@/types/api";
 import {
   POLITICAL_VIEWS,
   POLITICAL_VIEW_META,
@@ -47,6 +47,76 @@ const CONTROL_KEYS = new Set([
   "columns",
   "allow_download",
 ]);
+
+// ---------------------------------------------------------------------------
+// Niche gating — only surface Political for political/public-affairs clients
+// ---------------------------------------------------------------------------
+
+/**
+ * Substrings (lowercased) that mark a client as political / public-affairs.
+ * Matched against the client's niche/industry hints in meta + brand_info.
+ */
+const POLITICAL_NICHE_MATCHERS = [
+  "political",
+  "public affairs",
+  "public-affairs",
+  "public_affairs",
+  "publicaffairs",
+];
+
+/** Meta keys that may carry the niche/industry label. */
+const NICHE_KEYS = ["niche", "industry", "vertical", "sector", "category"];
+
+function collectNicheStrings(bag?: Record<string, unknown>): string[] {
+  if (!bag) return [];
+  const out: string[] = [];
+  for (const key of NICHE_KEYS) {
+    const v = bag[key];
+    if (typeof v === "string") out.push(v);
+    else if (Array.isArray(v)) {
+      for (const item of v) if (typeof item === "string") out.push(item);
+    }
+  }
+  const tags = bag.tags;
+  if (Array.isArray(tags)) {
+    for (const t of tags) if (typeof t === "string") out.push(t);
+  }
+  return out;
+}
+
+/** True when a single client's meta/brand_info marks it political/public-affairs. */
+export function clientIsPolitical(client: Client): boolean {
+  const strings = [
+    ...collectNicheStrings(client.meta),
+    ...collectNicheStrings(client.brand_info),
+  ].map((s) => s.toLowerCase());
+  return strings.some((s) =>
+    POLITICAL_NICHE_MATCHERS.some((m) => s.includes(m)),
+  );
+}
+
+/**
+ * True when the ACTIVE scope includes at least one political/public-affairs
+ * client. Gates the Political nav link + route.
+ *
+ *   client scope  → that one client's niche
+ *   partner scope → any client belonging to the partner
+ *   all scope     → any accessible client (admin/global view)
+ */
+export function scopeHasPoliticalNiche(ctx: ScopeContext): boolean {
+  const { active, clients } = ctx;
+
+  let relevant: Client[];
+  if (active.type === "client") {
+    relevant = clients.filter((c) => c.id === active.id);
+  } else if (active.type === "partner") {
+    relevant = clients.filter((c) => c.partner === active.id);
+  } else {
+    relevant = clients;
+  }
+
+  return relevant.some(clientIsPolitical);
+}
 
 function scalarToString(v: unknown): string | null {
   if (v === null || v === undefined) return null;
