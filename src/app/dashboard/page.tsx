@@ -12,6 +12,14 @@ import type {
 import { StatsCard } from "@/components/ui/stats-card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import {
+  getPoliticalLists,
+  scopeHasPoliticalNiche,
+  POLITICAL_VIEWS,
+  POLITICAL_VIEW_META,
+  type PoliticalListRow,
+  type PoliticalView,
+} from "@/lib/political";
 
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null;
@@ -114,6 +122,21 @@ export default async function DashboardPage() {
     activeClientIds === null
       ? allProposals
       : allProposals.filter((p) => p.client != null && inScopeClientId(p.client));
+
+  // ---- Voter-file (political) analytics — only for political-niche scopes ----
+  const hasPolitical = scopeHasPoliticalNiche(scopeCtx);
+  let politicalGrouped: Record<PoliticalView, PoliticalListRow[]> = {
+    walk: [],
+    call: [],
+    fundraising: [],
+  };
+  if (hasPolitical) {
+    try {
+      politicalGrouped = await getPoliticalLists(scopeCtx);
+    } catch {
+      // Degrade gracefully — non-political or failed fetches never break main dashboard.
+    }
+  }
 
   // ---- Stats -------------------------------------------------------------
   const inFlight = deliverables.filter((d) =>
@@ -229,6 +252,66 @@ export default async function DashboardPage() {
           />
         </Link>
       </div>
+
+      {/* Master Voter File — only rendered for political/public-affairs scope */}
+      {hasPolitical && (
+        <section className="space-y-4">
+          <div className="flex items-center justify-between">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+              Master Voter File
+            </h2>
+            <Link
+              href="/dashboard/political"
+              className="text-xs font-medium text-[var(--brand-primary)] hover:underline"
+            >
+              View political module →
+            </Link>
+          </div>
+
+          {/* Aggregate stats */}
+          <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
+            <StatsCard
+              label="Total Records"
+              value={POLITICAL_VIEWS.reduce(
+                (n, v) => n + politicalGrouped[v].reduce((m, seg) => m + seg.count, 0),
+                0,
+              ).toLocaleString()}
+              sub="across all lists"
+            />
+            <StatsCard label="Walk Lists" value={politicalGrouped.walk.length} />
+            <StatsCard label="Call Lists" value={politicalGrouped.call.length} />
+            <StatsCard label="Fundraising Lists" value={politicalGrouped.fundraising.length} />
+          </div>
+
+          {/* Compact submodule links */}
+          <div className="grid gap-3 sm:grid-cols-3">
+            {POLITICAL_VIEWS.map((view) => {
+              const meta = POLITICAL_VIEW_META[view];
+              const lists = politicalGrouped[view];
+              const records = lists.reduce((n, seg) => n + seg.count, 0);
+              return (
+                <Link
+                  key={view}
+                  href={`/dashboard/political/${view}`}
+                  className="group flex items-center justify-between rounded-2xl border border-black/5 bg-[var(--brand-surface-strong)]/40 px-4 py-3 transition hover:bg-[var(--brand-surface-strong)]/70"
+                >
+                  <div>
+                    <p className="text-sm font-semibold text-[var(--brand-foreground)] group-hover:text-[var(--brand-primary)]">
+                      {meta.label}
+                    </p>
+                    <p className="text-xs text-[var(--brand-muted)]">
+                      {lists.length} {lists.length === 1 ? "list" : "lists"}
+                    </p>
+                  </div>
+                  <span className="text-sm font-bold tabular-nums text-[var(--brand-foreground)]">
+                    {records.toLocaleString()}
+                  </span>
+                </Link>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="grid gap-6 lg:grid-cols-3">
         {/* Needs your review */}

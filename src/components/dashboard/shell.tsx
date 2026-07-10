@@ -317,19 +317,48 @@ export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical
 
         {/* Political dashboard link — only for political/public-affairs scope */}
         {showPolitical && (
-          <Link
-            href={POLITICAL_ITEM.href}
-            onClick={closeSidebar}
-            style={{ color: "var(--brand-sidebar-text)" }}
-            className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
-              pathname.startsWith("/dashboard/political")
-                ? "bg-[var(--brand-sidebar-text)]/15"
-                : "hover:bg-[var(--brand-sidebar-text)]/10"
-            }`}
-          >
-            <span className="text-[var(--brand-nav-icon)]">{POLITICAL_ITEM.icon}</span>
-            {POLITICAL_ITEM.label}
-          </Link>
+          <>
+            <Link
+              href={POLITICAL_ITEM.href}
+              onClick={closeSidebar}
+              style={{ color: "var(--brand-sidebar-text)" }}
+              className={`flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition ${
+                pathname === "/dashboard/political"
+                  ? "bg-[var(--brand-sidebar-text)]/15"
+                  : pathname.startsWith("/dashboard/political")
+                    ? "bg-[var(--brand-sidebar-text)]/8"
+                    : "hover:bg-[var(--brand-sidebar-text)]/10"
+              }`}
+            >
+              <span className="text-[var(--brand-nav-icon)]">{POLITICAL_ITEM.icon}</span>
+              {POLITICAL_ITEM.label}
+            </Link>
+
+            {/* Sub-nav — only visible when inside /dashboard/political */}
+            {pathname.startsWith("/dashboard/political") && (
+              <div className="ml-4 space-y-0.5 border-l pl-3" style={{ borderColor: "color-mix(in srgb, var(--brand-sidebar-text) 15%, transparent)" }}>
+                {([
+                  { href: "/dashboard/political/walk", label: "Walk" },
+                  { href: "/dashboard/political/call", label: "Call" },
+                  { href: "/dashboard/political/fundraising", label: "Fundraising" },
+                ] as const).map((sub) => (
+                  <Link
+                    key={sub.href}
+                    href={sub.href}
+                    onClick={closeSidebar}
+                    style={{ color: "var(--brand-sidebar-text)" }}
+                    className={`flex items-center rounded-lg px-2.5 py-2 text-xs font-medium transition ${
+                      pathname === sub.href
+                        ? "bg-[var(--brand-sidebar-text)]/15"
+                        : "opacity-80 hover:bg-[var(--brand-sidebar-text)]/10 hover:opacity-100"
+                    }`}
+                  >
+                    {sub.label}
+                  </Link>
+                ))}
+              </div>
+            )}
+          </>
         )}
 
         {/* Divider between Dashboard and resource group */}
