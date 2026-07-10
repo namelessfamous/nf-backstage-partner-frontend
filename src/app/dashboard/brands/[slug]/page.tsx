@@ -155,9 +155,18 @@ function DownloadIcon() {
   );
 }
 
+// Pick the best raster/svg URL to use as a visual preview for non-previewable
+// formats (pdf/eps/ai). Prefer png, then jpg, then svg.
+function previewFallback(outputs: Record<string, string>): string | null {
+  for (const fmt of ["png", "jpg", "jpeg", "svg"]) {
+    if (outputs[fmt]) return outputs[fmt];
+  }
+  return null;
+}
+
 function LogoPackageAccordion({ pkg }: { pkg: BrandLogoPackage }) {
   const outputs = orderedOutputs(pkg.outputs);
-  const previews = outputs.filter(([fmt]) => PREVIEWABLE.has(fmt));
+  const fallbackPreview = previewFallback(pkg.outputs);
   const isReady = pkg.status === "ready";
   const statusLabel =
     pkg.status === "ready"
@@ -209,39 +218,41 @@ function LogoPackageAccordion({ pkg }: { pkg: BrandLogoPackage }) {
               : "Deliverables are still being generated. Check back shortly."}
           </p>
         ) : (
-          <>
-            {previews.length > 0 && (
-              <div className="mb-5 grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
-                {previews.map(([fmt, url]) => (
-                  <div
-                    key={`preview-${fmt}`}
-                    className="flex aspect-square items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-[var(--brand-surface-strong)] p-3"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={url}
-                      alt={`${pkg.name} ${fmt.toUpperCase()} preview`}
-                      className="max-h-full max-w-full object-contain"
-                    />
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <div className="flex flex-wrap gap-2">
-              {outputs.map(([fmt, url]) => (
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
+            {outputs.map(([fmt, url]) => {
+              // Each format is one tile: preview on top, file type + download
+              // icon beneath. Whole tile downloads that format's file.
+              const previewSrc = PREVIEWABLE.has(fmt) ? url : fallbackPreview;
+              return (
                 <a
-                  key={`dl-${fmt}`}
+                  key={`fmt-${fmt}`}
                   href={url}
                   download
-                  className="inline-flex items-center gap-1.5 rounded-full border border-black/5 bg-[var(--brand-surface-strong)] px-3 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:bg-[var(--brand-primary)]/10 hover:text-[var(--brand-primary)]"
+                  title={`Download ${fmt.toUpperCase()}`}
+                  className="group/tile flex flex-col overflow-hidden rounded-2xl border border-black/5 bg-[var(--brand-surface-strong)] transition hover:border-[var(--brand-primary)]/30"
                 >
-                  <DownloadIcon />
-                  {fmt.toUpperCase()}
+                  <div className="flex aspect-square items-center justify-center p-3">
+                    {previewSrc ? (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img
+                        src={previewSrc}
+                        alt={`${pkg.name} ${fmt.toUpperCase()} preview`}
+                        className="max-h-full max-w-full object-contain"
+                      />
+                    ) : (
+                      <span className="text-2xl font-bold text-[var(--brand-muted)]">
+                        {fmt.toUpperCase()}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-center gap-1.5 border-t border-black/5 px-2 py-2 text-xs font-medium text-[var(--brand-foreground)] transition group-hover/tile:bg-[var(--brand-primary)]/10 group-hover/tile:text-[var(--brand-primary)]">
+                    <DownloadIcon />
+                    {fmt.toUpperCase()}
+                  </div>
                 </a>
-              ))}
-            </div>
-          </>
+              );
+            })}
+          </div>
         )}
       </div>
     </details>
