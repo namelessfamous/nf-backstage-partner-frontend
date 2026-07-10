@@ -23,6 +23,28 @@ function googleFontLinks(typography: BrandFont[]): string[] {
   return Array.from(urls);
 }
 
+// Collect unique Adobe Typekit kit CSS URLs. Adobe fonts are delivered via a
+// project (kit) id -> https://use.typekit.net/<kit>.css, which defines the
+// @font-face rules for every family in that kit. Injecting the <link> lets us
+// render live specimens in the brand's actual Adobe faces.
+function adobeFontLinks(typography: BrandFont[]): string[] {
+  const urls = new Set<string>();
+  for (const f of typography) {
+    if (f.source === "adobe" && f.adobe_project_id) {
+      urls.add(`https://use.typekit.net/${f.adobe_project_id}.css`);
+    }
+  }
+  return Array.from(urls);
+}
+
+// Normalize a font family value into a clean CSS font-family stack. Stored
+// families sometimes arrive already-quoted (e.g. '"bookmania"'); strip stray
+// quotes so we don't emit invalid double-quoted names.
+function fontStack(family: string, fallback = "system-ui, sans-serif"): string {
+  const clean = (family || "").replace(/["']/g, "").trim();
+  return clean ? `"${clean}", ${fallback}` : fallback;
+}
+
 function ColorRoleCard({ role, data }: { role: string; data: BrandColorRole }) {
   const tones = data.tones ?? {};
   const contrast = data.contrast ?? {};
@@ -71,14 +93,15 @@ function ColorRoleCard({ role, data }: { role: string; data: BrandColorRole }) {
 }
 
 function TypeSpecimen({ font }: { font: BrandFont }) {
-  const stack = `'${font.family}', system-ui, sans-serif`;
+  const stack = fontStack(font.family);
+  const cleanFamily = (font.family || "").replace(/["']/g, "").trim();
   return (
     <div className="rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-6">
       <div className="mb-4 flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-semibold capitalize text-[var(--brand-primary)]">
           {font.type}
         </span>
-        <span className="text-sm font-medium text-[var(--brand-foreground)]">{font.family}</span>
+        <span className="text-sm font-medium text-[var(--brand-foreground)]">{cleanFamily}</span>
         {font.weight && (
           <span className="text-xs text-[var(--brand-muted)]">weight {font.weight}</span>
         )}
@@ -124,12 +147,17 @@ export default async function BrandDetailPage({
   if (!brand) notFound();
 
   const fontLinks = googleFontLinks(brand.typography ?? []);
+  const adobeLinks = adobeFontLinks(brand.typography ?? []);
   const colorRoles = Object.entries(brand.colors ?? {});
 
   return (
     <div className="space-y-8">
-      {/* Load brand fonts for live specimens */}
+      {/* Load brand fonts for live specimens (Google + Adobe Typekit) */}
       {fontLinks.map((href) => (
+        // eslint-disable-next-line @next/next/no-page-custom-font
+        <link key={href} rel="stylesheet" href={href} />
+      ))}
+      {adobeLinks.map((href) => (
         // eslint-disable-next-line @next/next/no-page-custom-font
         <link key={href} rel="stylesheet" href={href} />
       ))}
