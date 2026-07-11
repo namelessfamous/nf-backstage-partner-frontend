@@ -1,6 +1,7 @@
 import "server-only";
+import { cache } from "react";
 import { cookies } from "next/headers";
-import { apiGet, apiList } from "@/lib/api";
+import { apiGetCached, apiListCached } from "@/lib/api";
 import { getPartnerContext } from "@/lib/partner-context";
 import type { Partner, Client } from "@/types/api";
 
@@ -86,7 +87,9 @@ type MeResponse = {
  * Uses Next.js fetch dedup — safe to call from both layout and child pages
  * within the same render pass without making duplicate network requests.
  */
-export async function getScopeContext(): Promise<ScopeContext> {
+export const getScopeContext = cache(_getScopeContext);
+
+async function _getScopeContext(): Promise<ScopeContext> {
   const cookieStore = await cookies();
   const rawCookie = cookieStore.get(SCOPE_COOKIE)?.value;
   const parsed = parseScopeCookie(rawCookie);
@@ -94,9 +97,9 @@ export async function getScopeContext(): Promise<ScopeContext> {
   // Fetch in parallel; fetch dedup keeps it to one real network call each.
   const [me, partners, clients, { partner: hostnamePartner }] =
     await Promise.all([
-      apiGet<MeResponse>("/api/v1/auth/me/", { revalidate: 0 }),
-      apiList<Partner>("/api/v1/partners/", { revalidate: 0 }),
-      apiList<Client>("/api/v1/clients/", { revalidate: 0 }),
+      apiGetCached<MeResponse>("/api/v1/auth/me/"),
+      apiListCached<Partner>("/api/v1/partners/"),
+      apiListCached<Client>("/api/v1/clients/"),
       getPartnerContext(),
     ]);
 

@@ -1,5 +1,5 @@
 import "server-only";
-import { apiList, emptyOnError } from "@/lib/api";
+import { apiListCached, emptyOnError } from "@/lib/api";
 import type { ScopeContext } from "@/lib/scope";
 import type { NavData } from "@/components/dashboard/shell";
 import type {
@@ -30,15 +30,15 @@ export async function buildNavData(scopeCtx: ScopeContext): Promise<NavData> {
   }
 
   const [deliverables, clients, projects, proposals, brands] = await Promise.all([
-    apiList<BackstageDeliverable>(deliverablesPath, { revalidate: 0 }).catch(
+    apiListCached<BackstageDeliverable>(deliverablesPath).catch(
       emptyOnError<BackstageDeliverable>,
     ),
-    apiList<Client>("/api/v1/clients/", { revalidate: 0 }).catch(emptyOnError<Client>),
-    apiList<Project>("/api/v1/projects/", { revalidate: 0 }).catch(emptyOnError<Project>),
-    apiList<ProposalListItem>("/api/v1/proposals/", { revalidate: 0 }).catch(
+    apiListCached<Client>("/api/v1/clients/").catch(emptyOnError<Client>),
+    apiListCached<Project>("/api/v1/projects/").catch(emptyOnError<Project>),
+    apiListCached<ProposalListItem>("/api/v1/proposals/").catch(
       emptyOnError<ProposalListItem>,
     ),
-    apiList<BrandListItem>("/api/v1/brands/", { revalidate: 0 }).catch(
+    apiListCached<BrandListItem>("/api/v1/brands/").catch(
       emptyOnError<BrandListItem>,
     ),
   ]);

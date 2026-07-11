@@ -1,4 +1,5 @@
 import "server-only";
+import { cache } from "react";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { DEFAULT_BACKSTAGE_API_URL } from "@/lib/runtime-config";
@@ -96,3 +97,26 @@ export async function apiList<T>(
   if (Array.isArray(data)) return data;
   return data.results ?? [];
 }
+
+/**
+ * Request-scoped memoized list fetch. Because most portal fetches use
+ * `revalidate: 0` (no-store), Next.js fetch dedup is disabled and identical
+ * endpoints hit the network once per caller. Several endpoints
+ * (deliverables / clients / projects / proposals / brands) are consumed by
+ * BOTH the dashboard layout (sidebar nav) AND the child page in the same
+ * render pass. Wrapping in React `cache()` collapses those duplicate calls to
+ * a single network round-trip for the lifetime of one server render.
+ *
+ * Keyed by the exact `path` string, so scoped URLs with different query params
+ * remain distinct. Only use for GET list endpoints that are safe to share
+ * within a single request.
+ */
+export const apiListCached = cache(
+  async <T>(path: string): Promise<T[]> => apiList<T>(path, { revalidate: 0 }),
+);
+
+/** Request-scoped memoized single-object GET (mirrors {@link apiListCached}). */
+export const apiGetCached = cache(
+  async <T>(path: string): Promise<T | null> =>
+    apiGet<T>(path, { revalidate: 0 }),
+);
