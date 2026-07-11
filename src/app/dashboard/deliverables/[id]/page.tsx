@@ -128,6 +128,18 @@ export default async function DeliverableDetailPage({
         </div>
       </div>
 
+
+      {/* Files section */}
+      <section>
+        <h2 className="mb-4 text-lg font-semibold text-[var(--brand-foreground)]">Files</h2>
+        <div className="rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-6">
+          <DeliverableFileGrid files={files} />
+          <div className="mt-6">
+            <AddAttachment deliverableId={id} />
+          </div>
+        </div>
+      </section>
+
       {/* Content section */}
       {(contentHtml || deliverable.content_md) && (
         <section>
@@ -148,17 +160,6 @@ export default async function DeliverableDetailPage({
           </div>
         </section>
       )}
-
-      {/* Files section */}
-      <section>
-        <h2 className="mb-4 text-lg font-semibold text-[var(--brand-foreground)]">Files</h2>
-        <div className="rounded-[2rem] border border-black/5 bg-[var(--brand-surface)] p-6">
-          <DeliverableFileGrid files={files} />
-          <div className="mt-6">
-            <AddAttachment deliverableId={id} />
-          </div>
-        </div>
-      </section>
 
       {/* Notes section */}
       <section>
