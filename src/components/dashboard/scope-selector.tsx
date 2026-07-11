@@ -4,6 +4,7 @@ import { useState, useTransition, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import type { Partner, Client } from "@/types/api";
 import type { ScopeValue } from "@/lib/scope";
+import { ScopeSwitchOverlay } from "./scope-switch-overlay";
 
 type Props = {
   active: ScopeValue;
@@ -34,6 +35,7 @@ export function ScopeSelector({
 }: Props) {
   const isSidebar = variant === "sidebar";
   const [open, setOpen] = useState(false);
+  const [pendingName, setPendingName] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
@@ -47,6 +49,16 @@ export function ScopeSelector({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [open]);
+
+  // Once the refresh transition resolves, tear the overlay down.
+  useEffect(() => {
+    if (!isPending) setPendingName(null);
+  }, [isPending]);
+
+  const overlay =
+    isPending && pendingName ? (
+      <ScopeSwitchOverlay scopeName={pendingName} />
+    ) : null;
 
   // Partner-scoped users see "All clients" (their partner) as the default
   // label rather than the global "All Scopes".
@@ -76,8 +88,22 @@ export function ScopeSelector({
     ? active.type === "partner" && active.slug === singlePartner.slug
     : active.type === "all";
 
+  function labelForScope(value: string): string {
+    if (value === "all") return allLabel;
+    const [type, slug] = value.split(":", 2);
+    if (type === "partner") {
+      if (singlePartner && singlePartner.slug === slug) return "All clients";
+      return partners.find((p) => p.slug === slug)?.name ?? "Switching scope";
+    }
+    if (type === "client") {
+      return clients.find((c) => c.slug === slug)?.name ?? "Switching scope";
+    }
+    return allLabel;
+  }
+
   async function selectScope(value: string) {
     setOpen(false);
+    setPendingName(labelForScope(value));
     await fetch("/api/scope", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -195,6 +221,8 @@ export function ScopeSelector({
 
   if (isSidebar) {
     return (
+      <>
+      {overlay}
       <div className="relative" ref={panelRef}>
         <button
           onClick={() => setOpen((v) => !v)}
@@ -232,10 +260,13 @@ export function ScopeSelector({
           </>
         )}
       </div>
+      </>
     );
   }
 
   return (
+    <>
+    {overlay}
     <div className="relative" ref={panelRef}>
       <button
         onClick={() => setOpen((v) => !v)}
@@ -288,5 +319,6 @@ export function ScopeSelector({
         </>
       )}
     </div>
+    </>
   );
 }
