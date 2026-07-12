@@ -187,6 +187,15 @@ export function scopeHasPoliticalNiche(ctx: ScopeContext): boolean {
   return relevant.some(clientIsPolitical);
 }
 
+/**
+ * Every political/public-affairs client the current user can reach, regardless
+ * of the active scope. Used by the political dashboard to offer a scope picker
+ * when the active scope isn't political but political clients exist elsewhere.
+ */
+export function politicalClientsInReach(ctx: ScopeContext): Client[] {
+  return ctx.clients.filter(clientIsPolitical);
+}
+
 // ── Row / column shaping ────────────────────────────────────────────────────
 
 function scalarToString(v: unknown): string {

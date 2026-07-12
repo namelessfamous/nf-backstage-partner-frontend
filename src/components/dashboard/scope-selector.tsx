@@ -6,6 +6,83 @@ import type { Partner, Client } from "@/types/api";
 import type { ScopeValue } from "@/lib/scope";
 import { ScopeSwitchOverlay } from "./scope-switch-overlay";
 
+type ClientGroup = { key: string; label: string; clients: Client[] };
+
+// Human labels for known client_type values. Unknown types are title-cased.
+const CLIENT_TYPE_LABELS: Record<string, string> = {
+  direct: "Direct",
+  internal: "Internal",
+};
+
+function titleCase(s: string): string {
+  return s
+    .replace(/[_-]+/g, " ")
+    .replace(/\b\w/g, (m) => m.toUpperCase())
+    .trim();
+}
+
+/**
+ * Bucket clients for the scope selector (Task 1).
+ *
+ * - `client_type === "partner"` → group under the client's `partner_name`
+ *   (each agency partner gets its own section).
+ * - any other `client_type` → group under that type's label (Direct, Internal, …).
+ * - missing `client_type` → "Direct".
+ *
+ * Ordering: Direct first, then named partner groups alphabetically, then other
+ * types alphabetically, with Internal pinned last. For single-partner users we
+ * skip bucketing entirely and return one "Your clients" group.
+ */
+function groupClients(clients: Client[], singlePartner: boolean): ClientGroup[] {
+  if (singlePartner) {
+    return clients.length
+      ? [{ key: "__partner", label: "Your clients", clients }]
+      : [];
+  }
+
+  const buckets = new Map<string, ClientGroup>();
+  for (const c of clients) {
+    const type = (c.client_type ?? "").toLowerCase();
+    let key: string;
+    let label: string;
+    if (type === "partner") {
+      const name = c.partner_name?.trim() || "Partners";
+      key = `partner:${name}`;
+      label = name;
+    } else if (type) {
+      key = `type:${type}`;
+      label = CLIENT_TYPE_LABELS[type] ?? titleCase(type);
+    } else {
+      key = "type:direct";
+      label = CLIENT_TYPE_LABELS.direct;
+    }
+    let bucket = buckets.get(key);
+    if (!bucket) {
+      bucket = { key, label, clients: [] };
+      buckets.set(key, bucket);
+    }
+    bucket.clients.push(c);
+  }
+
+  for (const b of buckets.values()) {
+    b.clients.sort((a, z) => a.name.localeCompare(z.name));
+  }
+
+  const rank = (g: ClientGroup): number => {
+    if (g.key === "type:direct") return 0;
+    if (g.key === "type:internal") return 3;
+    if (g.key.startsWith("partner:")) return 1;
+    return 2;
+  };
+
+  return [...buckets.values()].sort((a, z) => {
+    const ra = rank(a);
+    const rz = rank(z);
+    if (ra !== rz) return ra - rz;
+    return a.label.localeCompare(z.label);
+  });
+}
+
 type Props = {
   active: ScopeValue;
   partners: Partner[];
@@ -79,6 +156,13 @@ export function ScopeSelector({
   const scopedClients = singlePartner
     ? clients.filter((c) => c.partner === singlePartner.id)
     : clients;
+
+  // Group clients for the selector body (Task 1). Bucket by `client_type`;
+  // when the type is "partner", bucket instead by the client's partner_name so
+  // each agency partner (Grit Creative, Red Horse, Reggie & Co, …) gets its own
+  // section. Clients with no type fall into "Direct". Single-partner users keep
+  // the flat "Your clients" list — no cross-partner buckets are meaningful.
+  const clientGroups = groupClients(scopedClients, Boolean(singlePartner));
 
   // The partner itself is the "all my clients" selection for these users.
   const partnerScopeValue = singlePartner
@@ -157,12 +241,12 @@ export function ScopeSelector({
         </div>
       )}
 
-      {scopedClients.length > 0 && (
-        <div className="border-t border-black/10 p-1.5">
+      {clientGroups.map((group) => (
+        <div key={group.key} className="border-t border-black/10 p-1.5">
           <p className="mb-1 px-3 pt-1 text-[10px] font-semibold uppercase tracking-wider text-[var(--brand-muted)]">
-            {singlePartner ? "Your clients" : "Clients"}
+            {group.label}
           </p>
-          {scopedClients.map((c) => (
+          {group.clients.map((c) => (
             <button
               key={c.id}
               role="option"
@@ -172,15 +256,10 @@ export function ScopeSelector({
                 ${isActiveScope(`client:${c.slug}`) ? "font-semibold text-[var(--brand-primary)]" : "text-[var(--brand-foreground)]"}`}
             >
               <span>{c.name}</span>
-              {!singlePartner && c.partner_name && (
-                <span className="ml-2 shrink-0 text-[11px] text-[var(--brand-muted)]">
-                  {c.partner_name}
-                </span>
-              )}
             </button>
           ))}
         </div>
-      )}
+      ))}
     </>
   );
 

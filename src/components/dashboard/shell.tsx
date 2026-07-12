@@ -234,6 +234,11 @@ export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
+  // Task 3 / Task 4: a client-only user, or anyone pinned to a single client
+  // scope, has no meaningful "Clients" list to browse — hide that nav item.
+  const hideClientsNav =
+    scopeCtx.isClientOnly || scopeCtx.active.type === "client";
+
   // Derive a human-readable label for the active scope (shown next to partner badge).
   const scopeLabel =
     scopeCtx.active.type === "all"
@@ -367,8 +372,14 @@ export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical
           style={{ borderColor: "color-mix(in srgb, var(--brand-sidebar-text) 15%, transparent)" }}
         />
 
-        {/* Resource items with searchable flyouts */}
-        {RESOURCE_ITEMS.map((item) => (
+        {/* Resource items with searchable flyouts.
+            Task 3: hide the Clients item when the active scope is a single
+            client (or the user is client-only) — there's no client list to
+            browse when you're pinned to one client. */}
+        {RESOURCE_ITEMS.filter((item) => {
+          if (item.key === "clients" && hideClientsNav) return false;
+          return true;
+        }).map((item) => (
           <NavFlyout
             key={item.href}
             href={item.href}

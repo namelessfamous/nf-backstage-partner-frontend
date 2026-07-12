@@ -7,6 +7,7 @@ import {
   DeliverablesViewer,
   type DeliverableItemView,
 } from "@/components/deliverables/deliverables-viewer";
+import { PageHeader } from "@/components/dashboard/page-header";
 
 function formatDate(iso?: string | null): string | null {
   if (!iso) return null;
@@ -119,24 +120,19 @@ export default async function DashboardPage() {
   ).length;
 
   // Heading reflects active scope
-  const scopeHeading =
-    active.type === "all"
-      ? "Deliverables"
-      : active.type === "partner"
-        ? `${active.name} — Deliverables`
-        : `${active.name} — Deliverables`;
+
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">
-          {scopeHeading}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          Everything we&apos;re producing for you, in one place.
-        </p>
-      </div>
+      <PageHeader
+        title="Deliverables"
+        scope={active}
+        subtitle={
+          active.type === "all"
+            ? "Everything we’re producing for you, in one place."
+            : undefined
+        }
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">

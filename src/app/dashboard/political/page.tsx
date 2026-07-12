@@ -6,9 +6,11 @@ import {
   getPoliticalStores,
   getVoterAnalytics,
   scopeHasPoliticalNiche,
+  politicalClientsInReach,
   POLITICAL_VIEWS,
   POLITICAL_VIEW_META,
 } from "@/lib/political";
+import { PoliticalScopePrompt } from "@/components/political/political-scope-prompt";
 import { StatsCard } from "@/components/ui/stats-card";
 import {
   BarChart,
@@ -42,9 +44,25 @@ export default async function PoliticalPage({
 }) {
   const scopeCtx = await getScopeContext();
 
-  // Gate: only political / public-affairs scope may view this page.
+  // Gate: the political dashboard requires a political / public-affairs client
+  // in the ACTIVE scope (Task 5).
   if (!scopeHasPoliticalNiche(scopeCtx)) {
-    redirect("/dashboard");
+    // If the user can reach political clients through another scope, offer a
+    // scope picker instead of silently bouncing. If none exist at all, there's
+    // nothing political to show — send them back to the dashboard.
+    const reachable = politicalClientsInReach(scopeCtx);
+    if (reachable.length === 0) {
+      redirect("/dashboard");
+    }
+    return (
+      <PoliticalScopePrompt
+        clients={reachable.map((c) => ({
+          slug: c.slug,
+          name: c.name,
+          partnerName: c.partner_name ?? null,
+        }))}
+      />
+    );
   }
 
   const sp = await searchParams;

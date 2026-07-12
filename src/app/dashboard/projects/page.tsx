@@ -4,6 +4,7 @@ import { getScopeContext } from "@/lib/scope";
 import type { Project, ProjectStatus } from "@/types/api";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/dashboard/page-header";
 
 const ALL_STATUSES: { value: ProjectStatus | "all"; label: string }[] = [
   { value: "all", label: "All" },
@@ -78,25 +79,16 @@ export default async function ProjectsPage({
     {},
   );
 
-  const scopeLabel =
-    active.type === "all"
-      ? null
-      : active.type === "partner"
-        ? `partner: ${active.name}`
-        : active.type === "client"
-          ? `client: ${active.name}`
-          : null;
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">Projects</h1>
-        <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          {scopedProjects.length} project{scopedProjects.length !== 1 ? "s" : ""}
-          {scopeLabel ? ` · ${scopeLabel}` : " across all clients"}
-        </p>
-      </div>
+      <PageHeader
+        title="Projects"
+        scope={active}
+        count={scopedProjects.length}
+        countNoun="project"
+        subtitle={active.type === "all" ? "across all clients" : undefined}
+      />
 
       {/* Status filter tabs */}
       <div className="flex flex-wrap gap-2">

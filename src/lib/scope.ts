@@ -34,6 +34,12 @@ export type ScopeContext = {
   /** True when the logged-in user is admin or super_admin. */
   isAdmin: boolean;
   /**
+   * True when the backend role is exactly "client" — a client-only user with
+   * no partner/admin reach. These users get a single fixed scope: the scope
+   * selector is hidden entirely and the Clients menu item is suppressed.
+   */
+  isClientOnly: boolean;
+  /**
    * Set for a non-admin user whose access resolves to exactly one partner.
    * When present, the scope selector should present that partner as the
    * top-level "all my clients" option and only list that partner's clients —
@@ -105,6 +111,7 @@ async function _getScopeContext(): Promise<ScopeContext> {
 
   const role = me?.role ?? "client";
   const isAdmin = role === "super_admin" || role === "admin";
+  const isClientOnly = role === "client";
 
   // If no cookie, compute a sensible default:
   //   1. If the hostname maps to a real backstage partner → that partner
@@ -168,10 +175,13 @@ async function _getScopeContext(): Promise<ScopeContext> {
   // For a single-partner user, show it whenever that partner has >1 client
   // (so they can drill into an individual client) — the partner itself is the
   // "all" default, so a lone client wouldn't offer a meaningful choice.
+  // Client-only users are pinned to their single client scope — no switching.
   const totalScopes = partners.length + clients.length;
-  const showSelector = singlePartner
-    ? clients.filter((c) => c.partner === singlePartner.id).length > 1
-    : isAdmin || totalScopes > 1;
+  const showSelector = isClientOnly
+    ? false
+    : singlePartner
+      ? clients.filter((c) => c.partner === singlePartner.id).length > 1
+      : isAdmin || totalScopes > 1;
 
   // Pre-compute convenience fields for pages.
   let activeClientIds: string[] | null = null;
@@ -190,6 +200,7 @@ async function _getScopeContext(): Promise<ScopeContext> {
     clients,
     showSelector,
     isAdmin,
+    isClientOnly,
     singlePartner,
     activeClientIds,
     activeClientSlug,

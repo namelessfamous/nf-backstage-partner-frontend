@@ -3,6 +3,7 @@ import { apiList } from "@/lib/api";
 import { getScopeContext } from "@/lib/scope";
 import type { Client } from "@/types/api";
 import { EmptyState } from "@/components/ui/empty-state";
+import { PageHeader } from "@/components/dashboard/page-header";
 
 function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString("en-US", {
@@ -44,27 +45,17 @@ export default async function ClientsPage({
       )
     : scopedClients;
 
-  const scopeLabel =
-    active.type === "all"
-      ? null
-      : active.type === "partner"
-        ? `partner: ${active.name}`
-        : active.type === "client"
-          ? `client: ${active.name}`
-          : null;
-
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">Clients</h1>
-          <p className="mt-1 text-sm text-[var(--brand-muted)]">
-            {scopedClients.length} client{scopedClients.length !== 1 ? "s" : ""}
-            {scopeLabel ? ` · ${scopeLabel}` : " in your partner workspace"}
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        title="Clients"
+        scope={active}
+        count={scopedClients.length}
+        countNoun="client"
+        subtitle={
+          active.type === "all" ? "in your partner workspace" : undefined
+        }
+      />
 
       {/* Search — client-side via URL param using a form */}
       <form method="get" className="flex gap-3">
