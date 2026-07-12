@@ -45,6 +45,12 @@ export interface SegmentTableProps {
   columns: PoliticalColumn[];
   /** The accurate total count from the initial server fetch. */
   initialCount: number;
+  /**
+   * Optional per-column pre-filter applied on top of the segment definition,
+   * as `{col}:{val}`. Deep-linked from the political analytics widgets (e.g.
+   * “this segment, additionally filtered to precinct BOONES CREEK”).
+   */
+  initialFilter?: { col: string; val: string; label?: string } | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -205,7 +211,10 @@ export function SegmentTable({
   segmentId,
   columns,
   initialCount,
+  initialFilter = null,
 }: SegmentTableProps) {
+  // Additional per-column filter (deep-linked from analytics widgets).
+  const [colFilter, setColFilter] = useState(initialFilter);
   // Pagination
   const [page, setPage] = useState(0);
   const [pageSize, setPageSize] = useState(25);
@@ -236,6 +245,7 @@ export function SegmentTable({
       search: string;
       sortCol: string | null;
       sortDir: SortDir;
+      colFilter: { col: string; val: string; label?: string } | null;
     }) => {
       setLoading(true);
       setError(null);
@@ -245,6 +255,9 @@ export function SegmentTable({
           offset: String(opts.page * opts.pageSize),
         });
         if (opts.search) params.set("search", opts.search);
+        if (opts.colFilter) {
+          params.set("filter", `${opts.colFilter.col}:${opts.colFilter.val}`);
+        }
         if (opts.sortCol) {
           params.set("sort", opts.sortCol);
           params.set("dir", opts.sortDir);
@@ -267,10 +280,10 @@ export function SegmentTable({
     [segmentId],
   );
 
-  // Fetch on mount and whenever page/pageSize/search/sort changes.
+  // Fetch on mount and whenever page/pageSize/search/sort/colFilter changes.
   useEffect(() => {
-    fetchPage({ page, pageSize, search, sortCol, sortDir });
-  }, [page, pageSize, search, sortCol, sortDir, fetchPage]);
+    fetchPage({ page, pageSize, search, sortCol, sortDir, colFilter });
+  }, [page, pageSize, search, sortCol, sortDir, colFilter, fetchPage]);
 
   // Debounce search input
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
@@ -308,6 +321,29 @@ export function SegmentTable({
         row={selectedRow}
         columns={columns}
       />
+
+      {/* Active deep-linked column filter chip */}
+      {colFilter && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="inline-flex items-center gap-2 rounded-full bg-[var(--brand-primary)]/10 px-3 py-1 text-xs font-medium text-[var(--brand-foreground)]">
+            <span className="text-[var(--brand-muted)]">
+              {colFilter.label ?? colFilter.col}:
+            </span>
+            <span className="font-semibold">{colFilter.val}</span>
+            <button
+              type="button"
+              onClick={() => {
+                setColFilter(null);
+                setPage(0);
+              }}
+              aria-label="Remove filter"
+              className="ml-0.5 rounded-full px-1 text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
+            >
+              ×
+            </button>
+          </span>
+        </div>
+      )}
 
       {/* Controls row: filter input + page size */}
       <div className="flex flex-wrap items-center gap-2">

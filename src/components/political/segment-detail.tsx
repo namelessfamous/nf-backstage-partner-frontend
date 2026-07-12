@@ -28,11 +28,14 @@ const VIEW_LABELS: Record<PoliticalView, string> = {
 export interface SegmentDetailContentProps {
   view: PoliticalView;
   segment: PoliticalListRow | undefined;
+  /** Optional per-column pre-filter deep-linked from analytics widgets. */
+  initialFilter?: { col: string; val: string; label?: string } | null;
 }
 
 export function SegmentDetailContent({
   view,
   segment,
+  initialFilter = null,
 }: SegmentDetailContentProps) {
   if (!segment) {
     notFound();
@@ -100,6 +103,7 @@ export function SegmentDetailContent({
           slug={segment.slug}
           columns={segment.columns}
           initialCount={segment.count}
+          initialFilter={initialFilter}
         />
       </div>
 

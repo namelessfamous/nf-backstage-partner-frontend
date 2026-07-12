@@ -76,9 +76,12 @@ export function BarChart({
 export function HBars({
   data,
   colorFn,
+  renderRowAction,
 }: {
   data: VoterAnalyticsBar[];
   colorFn: (label: string) => string;
+  /** Optional per-row trailing slot (e.g. a segment Filter dropdown). */
+  renderRowAction?: (bar: VoterAnalyticsBar) => React.ReactNode;
 }) {
   const total = data.reduce((s, d) => s + d.value, 0) || 1;
   if (!data.length) {
@@ -90,9 +93,10 @@ export function HBars({
     <div className="flex flex-col gap-2.5 pt-1">
       {data.map((d) => {
         const pct = (d.value / total) * 100;
+        const action = renderRowAction?.(d);
         return (
           <div key={d.label}>
-            <div className="mb-1 flex items-center justify-between text-xs">
+            <div className="mb-1 flex items-center justify-between gap-2 text-xs">
               <span className="flex items-center gap-1.5 text-[var(--brand-foreground)]">
                 <span
                   className="inline-block h-2.5 w-2.5 rounded-sm"
@@ -100,9 +104,12 @@ export function HBars({
                 />
                 {d.label}
               </span>
-              <span className="text-[var(--brand-muted)]">
-                <strong className="text-[var(--brand-foreground)]">{fmt(d.value)}</strong>{" "}
-                · {pct.toFixed(1)}%
+              <span className="flex items-center gap-2">
+                <span className="text-[var(--brand-muted)]">
+                  <strong className="text-[var(--brand-foreground)]">{fmt(d.value)}</strong>{" "}
+                  · {pct.toFixed(1)}%
+                </span>
+                {action}
               </span>
             </div>
             <div className="h-2 overflow-hidden rounded-full bg-[var(--brand-surface-strong)]">

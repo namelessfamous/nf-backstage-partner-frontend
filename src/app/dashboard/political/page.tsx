@@ -18,6 +18,11 @@ import {
   genderColor,
 } from "@/components/political/analytics-widgets";
 import { AnalyticsToggle } from "@/components/political/analytics-toggle";
+import {
+  SegmentFilterDropdown,
+  segmentsForStore,
+} from "@/components/political/segment-filter-dropdown";
+import type { VoterAnalyticsBar } from "@/lib/political-types";
 
 export const dynamic = "force-dynamic";
 
@@ -91,6 +96,22 @@ export default async function PoliticalPage({
     election: electionType,
     weight,
   };
+
+  // Segments of the active voter-file store, for the per-row Filter dropdowns.
+  const storeSegments = activeStore
+    ? segmentsForStore(grouped, activeStore.id)
+    : [];
+
+  // Per-row Filter dropdown factory for horizontal-bar widgets.
+  const rowFilter = (colLabel: string) => (bar: VoterAnalyticsBar) => (
+    <SegmentFilterDropdown
+      col={bar.filter_col}
+      val={bar.filter_val}
+      label={colLabel}
+      segments={storeSegments}
+      align="right"
+    />
+  );
 
   return (
     <div className="space-y-8">
@@ -204,13 +225,21 @@ export default async function PoliticalPage({
           {/* Party breakdowns */}
           <div className="grid gap-4 md:grid-cols-2">
             <WidgetCard title="Official Party" subtitle="Registered party of record">
-              <HBars data={analytics.official_party} colorFn={partyColor} />
+              <HBars
+                data={analytics.official_party}
+                colorFn={partyColor}
+                renderRowAction={rowFilter("Party")}
+              />
             </WidgetCard>
             <WidgetCard
               title="Household Party"
               subtitle="Party composition by household"
             >
-              <HBars data={analytics.household_party} colorFn={partyColor} />
+              <HBars
+                data={analytics.household_party}
+                colorFn={partyColor}
+                renderRowAction={rowFilter("Household Party")}
+              />
             </WidgetCard>
           </div>
 
@@ -222,10 +251,22 @@ export default async function PoliticalPage({
                 electionType === "primary" ? "Primary" : "General"
               } elections voted (of last 4 cycles)`}
             >
-              <BarChart data={analytics.frequency} unit=" voters" />
+              <HBars
+                data={analytics.frequency}
+                colorFn={() => "var(--brand-primary)"}
+                renderRowAction={rowFilter(
+                  electionType === "primary"
+                    ? "Primary Frequency"
+                    : "General Frequency",
+                )}
+              />
             </WidgetCard>
             <WidgetCard title="Gender">
-              <HBars data={analytics.gender} colorFn={genderColor} />
+              <HBars
+                data={analytics.gender}
+                colorFn={genderColor}
+                renderRowAction={rowFilter("Gender")}
+              />
             </WidgetCard>
           </div>
 
@@ -264,6 +305,7 @@ export default async function PoliticalPage({
                       <th className="px-3 py-2 text-right font-medium">
                         Weighted Votes
                       </th>
+                      <th className="px-3 py-2 text-right font-medium">Filter</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -280,6 +322,15 @@ export default async function PoliticalPage({
                           {r.value.toLocaleString(undefined, {
                             maximumFractionDigits: 2,
                           })}
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          <SegmentFilterDropdown
+                            col={r.filter_col}
+                            val={r.filter_val}
+                            label={weight === "county" ? "County" : "Precinct"}
+                            segments={storeSegments}
+                            align="right"
+                          />
                         </td>
                       </tr>
                     ))}
@@ -299,9 +350,10 @@ export default async function PoliticalPage({
               title="County Counts"
               subtitle="Voters per county in this file"
             >
-              <BarChart
+              <HBars
                 data={analytics.county_counts.slice(0, 20)}
-                unit=" voters"
+                colorFn={() => "var(--brand-primary)"}
+                renderRowAction={rowFilter("County")}
               />
             </WidgetCard>
           )}

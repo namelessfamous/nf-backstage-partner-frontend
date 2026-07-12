@@ -96,6 +96,10 @@ export interface PoliticalStore {
 export interface VoterAnalyticsBar {
   label: string;
   value: number;
+  /** Single voter-file column key to filter a segment by (deep-link target). */
+  filter_col?: string;
+  /** Value for `filter_col` — combined as `filter=<col>:<val>` on the resolve API. */
+  filter_val?: string;
 }
 
 export interface VoterAnalytics {
@@ -121,4 +125,21 @@ export interface VoterAnalytics {
     mean: number | null;
     median: number | null;
   };
+}
+
+/**
+ * Parse a `filter=<col>:<val>` deep-link query param into a structured filter.
+ * The value may itself contain colons; only the first colon is the separator.
+ * Returns null when absent or malformed. Client-safe (no server imports).
+ */
+export function parseFilterParam(
+  raw: string | undefined | null,
+): { col: string; val: string } | null {
+  if (!raw) return null;
+  const idx = raw.indexOf(":");
+  if (idx <= 0) return null;
+  const col = raw.slice(0, idx).trim();
+  const val = raw.slice(idx + 1).trim();
+  if (!col || !val) return null;
+  return { col, val };
 }

@@ -1,16 +1,20 @@
 import { redirect } from "next/navigation";
 import { getScopeContext } from "@/lib/scope";
 import { getPoliticalLists, scopeHasPoliticalNiche } from "@/lib/political";
+import { parseFilterParam } from "@/lib/political-types";
 import { SegmentDetailContent } from "@/components/political/segment-detail";
 
 export const dynamic = "force-dynamic";
 
 export default async function FundraisingSegmentDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ segmentId: string }>;
+  searchParams: Promise<{ filter?: string }>;
 }) {
   const { segmentId } = await params;
+  const { filter } = await searchParams;
   const scopeCtx = await getScopeContext();
 
   if (!scopeHasPoliticalNiche(scopeCtx)) {
@@ -20,5 +24,11 @@ export default async function FundraisingSegmentDetailPage({
   const grouped = await getPoliticalLists(scopeCtx);
   const segment = grouped.fundraising.find((s) => s.id === segmentId);
 
-  return <SegmentDetailContent view="fundraising" segment={segment} />;
+  return (
+    <SegmentDetailContent
+      view="fundraising"
+      segment={segment}
+      initialFilter={parseFilterParam(filter)}
+    />
+  );
 }
