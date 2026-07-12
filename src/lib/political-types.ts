@@ -90,3 +90,35 @@ export interface PoliticalStore {
   clientName?: string;
   columns?: Array<{ key: string; label?: string }>;
 }
+
+// ── Voter-file analytics (Shiny app port) ───────────────────────────────────
+
+export interface VoterAnalyticsBar {
+  label: string;
+  value: number;
+}
+
+export interface VoterAnalytics {
+  scope: "voter_analytics";
+  store_id: string;
+  store_name: string;
+  row_count: number;
+  analyzed_rows: number;
+  election_type: "primary" | "general";
+  weight: "precinct" | "county";
+  columns_resolved: Record<string, string>;
+  official_party: VoterAnalyticsBar[];
+  household_party: VoterAnalyticsBar[];
+  gender: VoterAnalyticsBar[];
+  county_counts: VoterAnalyticsBar[];
+  frequency: VoterAnalyticsBar[];
+  weighted_ranking: VoterAnalyticsBar[];
+  age_histogram: VoterAnalyticsBar[];
+  age_stats: {
+    count: number;
+    min: number | null;
+    max: number | null;
+    mean: number | null;
+    median: number | null;
+  };
+}

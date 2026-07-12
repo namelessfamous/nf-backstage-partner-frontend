@@ -9,6 +9,8 @@ import {
   type PoliticalListRow,
   type PoliticalRecordRow,
   type PoliticalStore,
+  type VoterAnalytics,
+  type VoterAnalyticsBar,
 } from "@/lib/political-types";
 
 export {
@@ -19,6 +21,8 @@ export {
   type PoliticalListRow,
   type PoliticalRecordRow,
   type PoliticalStore,
+  type VoterAnalytics,
+  type VoterAnalyticsBar,
 };
 
 /**
@@ -389,4 +393,35 @@ export async function getPoliticalStores(
       clientName: clientNameById.get(s.client),
       columns: (s.columns ?? []).map((c) => ({ key: c.key, label: c.label })),
     }));
+}
+
+// ── Voter-file analytics (Shiny app port) ───────────────────────────────────
+
+export interface VoterAnalyticsOptions {
+  electionType?: "primary" | "general";
+  weight?: "precinct" | "county";
+  top?: number;
+}
+
+/**
+ * Fetch computed voter-file analytics for a single store from the backend
+ * `analytics` action (ports the legacy Grit Shiny VoterFile Analysis widgets:
+ * party breakdown, voter frequency, weighted precinct/county ranking, age
+ * histogram, gender, county counts).
+ *
+ * Returns null on any soft failure so the page can degrade gracefully.
+ */
+export async function getVoterAnalytics(
+  storeId: string,
+  opts: VoterAnalyticsOptions = {},
+): Promise<VoterAnalytics | null> {
+  const params = new URLSearchParams({
+    election_type: opts.electionType ?? "primary",
+    weight: opts.weight ?? "precinct",
+    top: String(opts.top ?? 25),
+  });
+  return apiGet<VoterAnalytics>(
+    `/api/v1/datastore/stores/${storeId}/analytics/?${params.toString()}`,
+    { revalidate: 0 },
+  );
 }

@@ -4,11 +4,20 @@ import { getScopeContext } from "@/lib/scope";
 import {
   getPoliticalLists,
   getPoliticalStores,
+  getVoterAnalytics,
   scopeHasPoliticalNiche,
   POLITICAL_VIEWS,
   POLITICAL_VIEW_META,
 } from "@/lib/political";
 import { StatsCard } from "@/components/ui/stats-card";
+import {
+  BarChart,
+  HBars,
+  WidgetCard,
+  partyColor,
+  genderColor,
+} from "@/components/political/analytics-widgets";
+import { AnalyticsToggle } from "@/components/political/analytics-toggle";
 
 export const dynamic = "force-dynamic";
 
@@ -18,7 +27,14 @@ const VIEW_HREFS: Record<string, string> = {
   fundraising: "/dashboard/political/fundraising",
 };
 
-export default async function PoliticalPage() {
+type ElectionType = "primary" | "general";
+type Weight = "precinct" | "county";
+
+export default async function PoliticalPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ store?: string; election?: string; weight?: string }>;
+}) {
   const scopeCtx = await getScopeContext();
 
   // Gate: only political / public-affairs scope may view this page.
@@ -26,22 +42,55 @@ export default async function PoliticalPage() {
     redirect("/dashboard");
   }
 
+  const sp = await searchParams;
+
   const [grouped, politicalStores] = await Promise.all([
     getPoliticalLists(scopeCtx),
     getPoliticalStores(scopeCtx),
   ]);
+
+  // Only master voter files (not donor/contact) drive the analytics widgets.
+  const voterFiles = politicalStores.filter(
+    (s) => s.kind === "voter_file" && s.rowCount > 0,
+  );
+
+  const activeStore =
+    voterFiles.find((s) => s.id === sp.store) ?? voterFiles[0] ?? null;
+  const electionType: ElectionType = sp.election === "general" ? "general" : "primary";
+  const weight: Weight = sp.weight === "county" ? "county" : "precinct";
+
+  const analytics = activeStore
+    ? await getVoterAnalytics(activeStore.id, {
+        electionType,
+        weight,
+        top: 25,
+      })
+    : null;
 
   const scopeHeading =
     scopeCtx.active.type === "partner" || scopeCtx.active.type === "client"
       ? `Political — ${scopeCtx.active.name}`
       : "Political";
 
-  // Change 1: Total records = SUM of master voter file store row_count values.
   const voterFileTotal = politicalStores.reduce((n, s) => n + s.rowCount, 0);
-  const voterFileLabel =
-    politicalStores.length === 1
-      ? politicalStores[0].name
-      : `${politicalStores.length} voter files`;
+
+  // Party share KPIs
+  const totalOfficial =
+    analytics?.official_party.reduce((s, d) => s + d.value, 0) ?? 0;
+  const repCount =
+    analytics?.official_party.find((d) => d.label.toLowerCase().startsWith("rep"))
+      ?.value ?? 0;
+  const demCount =
+    analytics?.official_party.find((d) => d.label.toLowerCase().startsWith("dem"))
+      ?.value ?? 0;
+  const repShare = totalOfficial ? (repCount / totalOfficial) * 100 : 0;
+  const demShare = totalOfficial ? (demCount / totalOfficial) * 100 : 0;
+
+  const baseParams: Record<string, string> = {
+    ...(activeStore ? { store: activeStore.id } : {}),
+    election: electionType,
+    weight,
+  };
 
   return (
     <div className="space-y-8">
@@ -51,27 +100,232 @@ export default async function PoliticalPage() {
           {scopeHeading}
         </h1>
         <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          Walk, call, and fundraising lists built from your master voter file —
-          download any list as CSV.
+          Voter-file analytics — party, turnout frequency, demographics, and
+          weighted precinct targeting from your master voter file.
         </p>
       </div>
 
-      {/* Overview stats — totals from master voter file, not segment sums */}
+      {/* Overview stats */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
         <StatsCard
-          label="Voter File Records"
-          value={voterFileTotal.toLocaleString()}
-          sub={voterFileLabel}
+          label="Voters Analyzed"
+          value={
+            analytics
+              ? analytics.analyzed_rows.toLocaleString()
+              : voterFileTotal.toLocaleString()
+          }
+          sub={activeStore?.name ?? `${voterFiles.length} voter files`}
         />
-        <StatsCard label="Walk Lists" value={grouped.walk.length} />
-        <StatsCard label="Call Lists" value={grouped.call.length} />
-        <StatsCard label="Fundraising Lists" value={grouped.fundraising.length} />
+        <StatsCard
+          label="Republican"
+          value={totalOfficial ? `${repShare.toFixed(1)}%` : "—"}
+          sub={totalOfficial ? `${repCount.toLocaleString()} voters` : undefined}
+        />
+        <StatsCard
+          label="Democrat"
+          value={totalOfficial ? `${demShare.toFixed(1)}%` : "—"}
+          sub={totalOfficial ? `${demCount.toLocaleString()} voters` : undefined}
+        />
+        <StatsCard
+          label="Median Age"
+          value={
+            analytics?.age_stats.median != null
+              ? String(analytics.age_stats.median)
+              : "—"
+          }
+          sub={
+            analytics?.age_stats.mean != null
+              ? `mean ${analytics.age_stats.mean}`
+              : undefined
+          }
+        />
       </div>
 
-      {/* Submodule navigation cards */}
+      {/* Analytics controls */}
+      {voterFiles.length > 0 && (
+        <div className="flex flex-wrap items-end gap-4 rounded-3xl bg-[var(--brand-surface-strong)]/40 p-4">
+          {voterFiles.length > 1 && (
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                Voter File
+              </span>
+              <div className="flex flex-wrap gap-1.5">
+                {voterFiles.map((s) => {
+                  const active = s.id === activeStore?.id;
+                  const params = new URLSearchParams({
+                    ...baseParams,
+                    store: s.id,
+                  });
+                  return (
+                    <Link
+                      key={s.id}
+                      href={`?${params.toString()}`}
+                      scroll={false}
+                      className={
+                        active
+                          ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#fff)]"
+                          : "rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
+                      }
+                    >
+                      {s.name} ({s.rowCount.toLocaleString()})
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+
+          <AnalyticsToggle
+            paramKey="election"
+            current={electionType}
+            labelText="Election Type"
+            baseParams={baseParams}
+            options={[
+              { value: "primary", label: "Primary" },
+              { value: "general", label: "General" },
+            ]}
+          />
+          <AnalyticsToggle
+            paramKey="weight"
+            current={weight}
+            labelText="Weight By"
+            baseParams={baseParams}
+            options={[
+              { value: "precinct", label: "Precincts" },
+              { value: "county", label: "Counties" },
+            ]}
+          />
+        </div>
+      )}
+
+      {/* Analytics widgets */}
+      {activeStore && analytics ? (
+        <div className="space-y-4">
+          {/* Party breakdowns */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <WidgetCard title="Official Party" subtitle="Registered party of record">
+              <HBars data={analytics.official_party} colorFn={partyColor} />
+            </WidgetCard>
+            <WidgetCard
+              title="Household Party"
+              subtitle="Party composition by household"
+            >
+              <HBars data={analytics.household_party} colorFn={partyColor} />
+            </WidgetCard>
+          </div>
+
+          {/* Frequency + Gender */}
+          <div className="grid gap-4 md:grid-cols-2">
+            <WidgetCard
+              title="Voter Frequency"
+              subtitle={`${
+                electionType === "primary" ? "Primary" : "General"
+              } elections voted (of last 4 cycles)`}
+            >
+              <BarChart data={analytics.frequency} unit=" voters" />
+            </WidgetCard>
+            <WidgetCard title="Gender">
+              <HBars data={analytics.gender} colorFn={genderColor} />
+            </WidgetCard>
+          </div>
+
+          {/* Age histogram */}
+          <WidgetCard
+            title="Age Distribution"
+            subtitle={
+              analytics.age_stats.count
+                ? `${analytics.age_stats.count.toLocaleString()} voters · ${
+                    analytics.age_stats.min
+                  }–${analytics.age_stats.max} yrs · median ${
+                    analytics.age_stats.median
+                  }`
+                : undefined
+            }
+          >
+            <BarChart data={analytics.age_histogram} height={220} />
+          </WidgetCard>
+
+          {/* Weighted ranking */}
+          <WidgetCard
+            title={`Weighted ${weight === "county" ? "County" : "Precinct"} Ranking`}
+            subtitle={`${
+              electionType === "primary" ? "Primary" : "General"
+            } frequency ÷ 4 — highest-turnout targets first`}
+          >
+            {analytics.weighted_ranking.length ? (
+              <div className="overflow-hidden rounded-2xl border border-black/5">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="bg-[var(--brand-surface-strong)]/60 text-left text-xs text-[var(--brand-muted)]">
+                      <th className="px-3 py-2 font-medium">#</th>
+                      <th className="px-3 py-2 font-medium">
+                        {weight === "county" ? "County" : "County–Precinct"}
+                      </th>
+                      <th className="px-3 py-2 text-right font-medium">
+                        Weighted Votes
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {analytics.weighted_ranking.map((r, i) => (
+                      <tr
+                        key={r.label}
+                        className="border-t border-black/5 text-[var(--brand-foreground)]"
+                      >
+                        <td className="px-3 py-2 text-[var(--brand-muted)]">
+                          {i + 1}
+                        </td>
+                        <td className="px-3 py-2 font-medium">{r.label}</td>
+                        <td className="px-3 py-2 text-right tabular-nums">
+                          {r.value.toLocaleString(undefined, {
+                            maximumFractionDigits: 2,
+                          })}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            ) : (
+              <p className="py-6 text-center text-xs text-[var(--brand-muted)]">
+                This voter file has no precinct/frequency columns.
+              </p>
+            )}
+          </WidgetCard>
+
+          {/* County counts */}
+          {analytics.county_counts.length > 1 && (
+            <WidgetCard
+              title="County Counts"
+              subtitle="Voters per county in this file"
+            >
+              <BarChart
+                data={analytics.county_counts.slice(0, 20)}
+                unit=" voters"
+              />
+            </WidgetCard>
+          )}
+        </div>
+      ) : voterFiles.length === 0 ? (
+        <div className="rounded-3xl bg-[var(--brand-surface-strong)]/40 p-8 text-center">
+          <p className="text-sm text-[var(--brand-muted)]">
+            No master voter file is assigned to this scope yet. Once a voter file
+            is ingested, party, turnout, and demographic analytics appear here.
+          </p>
+        </div>
+      ) : (
+        <div className="rounded-3xl bg-[var(--brand-surface-strong)]/40 p-8 text-center">
+          <p className="text-sm text-[var(--brand-muted)]">
+            Analytics are being computed for this voter file. Refresh in a
+            moment.
+          </p>
+        </div>
+      )}
+
+      {/* Submodule navigation cards — walk / call / fundraising list building */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
-          Modules
+          List Building
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
           {POLITICAL_VIEWS.map((view) => {
@@ -94,12 +348,9 @@ export default async function PoliticalPage() {
                     {lists.length}
                   </span>
                   <span className="text-xs text-[var(--brand-muted)]">
-                    {voterFileTotal.toLocaleString()} voter file records
+                    {lists.length === 1 ? "list" : "lists"}
                   </span>
                 </div>
-                <p className="mt-0.5 text-[0.65rem] text-[var(--brand-muted)]">
-                  {lists.length === 1 ? "list" : "lists"}
-                </p>
               </Link>
             );
           })}
