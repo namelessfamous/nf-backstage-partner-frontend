@@ -43,20 +43,19 @@ export function PageHeader({
         </h1>
         {(subtitle || scopeText || countText) && (
           <p className="mt-1.5 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs font-medium uppercase tracking-wider text-[var(--brand-muted)]">
-            {countText && <span>{countText}</span>}
-            {countText && (scopeText || subtitle) && (
-              <span aria-hidden className="text-[var(--brand-muted)]/50">
-                ·
-              </span>
-            )}
-            {subtitle ? (
-              subtitle
-            ) : scopeText ? (
+            {scopeText && (
               <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--brand-surface-strong)] px-2.5 py-0.5 normal-case tracking-normal text-[var(--brand-primary)]">
                 {scopeText.kind}
                 <span className="font-semibold">{scopeText.name}</span>
               </span>
-            ) : null}
+            )}
+            {countText && <span>{countText}</span>}
+            {(scopeText || countText) && subtitle && (
+              <span aria-hidden className="text-[var(--brand-muted)]/50">
+                ·
+              </span>
+            )}
+            {subtitle}
           </p>
         )}
       </div>

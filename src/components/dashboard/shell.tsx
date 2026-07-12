@@ -234,10 +234,14 @@ export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const closeSidebar = useCallback(() => setSidebarOpen(false), []);
 
-  // Task 3 / Task 4: a client-only user, or anyone pinned to a single client
-  // scope, has no meaningful "Clients" list to browse — hide that nav item.
+  // Task 3 / Task 4: hide the "Clients" nav item when there's no meaningful
+  // client list to browse — i.e. a client-only user, a single-client scope, or
+  // any user pinned to one fixed scope (selector hidden). This covers client
+  // users whose scope resolves to their partner as well as to a lone client.
   const hideClientsNav =
-    scopeCtx.isClientOnly || scopeCtx.active.type === "client";
+    scopeCtx.isClientOnly ||
+    scopeCtx.active.type === "client" ||
+    !scopeCtx.showSelector;
 
   // Derive a human-readable label for the active scope (shown next to partner badge).
   const scopeLabel =

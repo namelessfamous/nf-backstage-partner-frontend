@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { apiListCached, emptyOnError, SessionExpiredError } from "@/lib/api";
 import { buildReauthUrl } from "@/lib/reauth";
 import { getScopeContext } from "@/lib/scope";
+import { PageHeader } from "@/components/dashboard/page-header";
 import type {
   BackstageDeliverable,
   Project,
@@ -194,22 +195,13 @@ export default async function DashboardPage() {
     project: { label: "Project", dot: "bg-[var(--brand-muted)]" },
   };
 
-  const greeting =
-    active.type === "all"
-      ? "Dashboard"
-      : `${active.name} — Dashboard`;
-
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">
-          {greeting}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          A snapshot of everything we&apos;re producing for you.
-        </p>
-      </div>
+      <PageHeader
+        title="Dashboard"
+        scope={active}
+        subtitle="A snapshot of everything we’re producing for you."
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-4 gap-2 sm:gap-4 lg:grid-cols-4">
