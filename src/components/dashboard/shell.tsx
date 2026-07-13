@@ -350,6 +350,7 @@ export function DashboardShell({ partner, user, scopeCtx, navData, showPolitical
                   { href: "/dashboard/political/walk", label: "Walk" },
                   { href: "/dashboard/political/call", label: "Call" },
                   { href: "/dashboard/political/fundraising", label: "Fundraising" },
+                  { href: "/dashboard/political/mail", label: "Direct Mail" },
                 ] as const).map((sub) => (
                   <Link
                     key={sub.href}

@@ -41,3 +41,34 @@ export async function POST(
   const data = await res.json().catch(() => null);
   return NextResponse.json(data, { status: res.status });
 }
+
+/**
+ * DELETE /api/deliverables/[id]
+ * Proxy → DELETE /api/v1/deliverables/<id>/ on backstage.
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string }> },
+) {
+  const { id } = await params;
+
+  const session = await getServerSession(authOptions);
+  if (!session?.accessToken) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const res = await fetch(`${BASE_URL}/api/v1/deliverables/${id}/`, {
+    method: "DELETE",
+    headers: {
+      Accept: "application/json",
+      Authorization: `Bearer ${session.accessToken}`,
+    },
+  });
+
+  if (res.status === 204) {
+    return new NextResponse(null, { status: 204 });
+  }
+
+  const data = await res.json().catch(() => null);
+  return NextResponse.json(data, { status: res.status });
+}

@@ -32,6 +32,7 @@ const VIEW_HREFS: Record<string, string> = {
   walk: "/dashboard/political/walk",
   call: "/dashboard/political/call",
   fundraising: "/dashboard/political/fundraising",
+  mail: "/dashboard/political/mail",
 };
 
 type ElectionType = "primary" | "general";
@@ -424,6 +425,33 @@ export default async function PoliticalPage({
               </Link>
             );
           })}
+        </div>
+      </div>
+
+      {/* Direct Mail tracking card */}
+      <div>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+          Campaign Operations
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <Link
+            href={VIEW_HREFS.mail}
+            className="group block rounded-3xl border border-black/5 bg-[var(--brand-surface-strong)]/40 p-5 transition hover:bg-[var(--brand-surface-strong)]/70 hover:shadow-sm"
+          >
+            <p className="text-base font-semibold text-[var(--brand-foreground)] group-hover:text-[var(--brand-primary)]">
+              Direct Mail
+            </p>
+            <p className="mt-1 text-xs leading-5 text-[var(--brand-muted)]">
+              Plan and track campaign mail pieces — universe, units, costs,
+              print status, and drop dates grouped by election cycle.
+            </p>
+            <div className="mt-4 flex items-end justify-between">
+              <span className="text-2xl font-bold tabular-nums text-[var(--brand-foreground)]">
+                →
+              </span>
+              <span className="text-xs text-[var(--brand-muted)]">mail grid</span>
+            </div>
+          </Link>
         </div>
       </div>
     </div>
