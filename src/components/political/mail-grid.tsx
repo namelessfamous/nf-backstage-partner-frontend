@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useCallback, useTransition } from "react";
+import React, { useState, useCallback, useMemo, useTransition } from "react";
 import type { BackstageDeliverable } from "@/types/api";
 import {
   type MailPieceData,
@@ -26,22 +26,62 @@ export interface MailGridGroup {
   rows: MailGridRow[];
 }
 
-// ── Status badge colors ────────────────────────────────────────────────────────
+// ── Sorting ────────────────────────────────────────────────────────────────────
+
+/**
+ * Canonical row ordering: order label first (natural/alpha-numeric), then drop
+ * date. Applied everywhere rows are rendered so the grid is stable regardless of
+ * insert order. Rows missing an order label sort after labeled ones; rows
+ * missing a drop date sort last within their label group.
+ */
+function dropDateOf(r: MailGridRow): string {
+  return r.deliverable.due_to_client ?? r.deliverable.due_date ?? "";
+}
+
+function sortRows(rows: MailGridRow[]): MailGridRow[] {
+  return [...rows].sort((a, b) => {
+    const la = (a.mailPiece.orderLabel ?? "").trim();
+    const lb = (b.mailPiece.orderLabel ?? "").trim();
+    // Labeled rows before unlabeled.
+    if (la && !lb) return -1;
+    if (!la && lb) return 1;
+    if (la !== lb) {
+      return la.localeCompare(lb, undefined, { numeric: true, sensitivity: "base" });
+    }
+    // Same (or both empty) label → by drop date; empty dates last.
+    const da = dropDateOf(a);
+    const db = dropDateOf(b);
+    if (da && !db) return -1;
+    if (!da && db) return 1;
+    return da.localeCompare(db);
+  });
+}
+
+// ── Formatting helpers ─────────────────────────────────────────────────────────
+
+function formatDropDate(iso: string): string {
+  if (!iso) return "—";
+  const d = new Date(`${iso}T00:00:00`);
+  if (Number.isNaN(d.getTime())) return iso;
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
+// ── Status badge colors (brand-consistent, light theme) ────────────────────────
 
 const STATUS_COLORS: Record<string, string> = {
-  DRAFT: "bg-zinc-700 text-zinc-200",
-  DESIGN: "bg-blue-900 text-blue-200",
-  APPROVED: "bg-green-900 text-green-200",
-  PRINTING: "bg-purple-900 text-purple-200",
-  SCHEDULED: "bg-amber-900 text-amber-200",
-  DROPPED: "bg-emerald-900 text-emerald-200",
-  HOLD: "bg-orange-900 text-orange-200",
-  CANCELLED: "bg-red-950 text-red-300",
+  DRAFT: "bg-black/5 text-[var(--brand-muted)]",
+  DESIGN: "bg-blue-100 text-blue-800",
+  APPROVED: "bg-green-100 text-green-800",
+  PRINTING: "bg-purple-100 text-purple-800",
+  SCHEDULED: "bg-amber-100 text-amber-900",
+  DROPPED: "bg-emerald-100 text-emerald-800",
+  HOLD: "bg-orange-100 text-orange-900",
+  CANCELLED: "bg-red-100 text-red-800",
 };
 
 function StatusPill({ status }: { status?: string }) {
-  if (!status) return <span className="text-zinc-500">—</span>;
-  const cls = STATUS_COLORS[status] ?? "bg-zinc-700 text-zinc-200";
+  if (!status) return <span className="text-[var(--brand-muted)]">—</span>;
+  const cls = STATUS_COLORS[status] ?? "bg-black/5 text-[var(--brand-muted)]";
   return (
     <span className={`inline-block rounded-full px-2 py-0.5 text-[0.65rem] font-semibold uppercase tracking-wide ${cls}`}>
       {status}
@@ -53,13 +93,14 @@ function StatusPill({ status }: { status?: string }) {
 
 interface EditCellProps {
   value: string;
-  type?: "text" | "number";
+  display?: string;
+  type?: "text" | "number" | "date";
   onSave: (val: string) => void;
   readOnly?: boolean;
   className?: string;
 }
 
-function EditCell({ value, type = "text", onSave, readOnly, className = "" }: EditCellProps) {
+function EditCell({ value, display, type = "text", onSave, readOnly, className = "" }: EditCellProps) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(value);
 
@@ -68,17 +109,19 @@ function EditCell({ value, type = "text", onSave, readOnly, className = "" }: Ed
     if (draft !== value) onSave(draft);
   }, [draft, value, onSave]);
 
+  const shown = display ?? value;
+
   if (readOnly) {
-    return <span className={className}>{value || "—"}</span>;
+    return <span className={className}>{shown || "—"}</span>;
   }
 
   if (!editing) {
     return (
       <button
         onClick={() => { setDraft(value); setEditing(true); }}
-        className={`w-full text-left rounded px-1 py-0.5 hover:bg-white/5 transition-colors ${className}`}
+        className={`w-full text-left rounded px-1 py-0.5 hover:bg-black/[0.04] transition-colors ${className}`}
       >
-        {value || <span className="text-zinc-600">—</span>}
+        {shown || <span className="text-[var(--brand-muted)]/50">—</span>}
       </button>
     );
   }
@@ -88,7 +131,7 @@ function EditCell({ value, type = "text", onSave, readOnly, className = "" }: Ed
       autoFocus
       type={type}
       value={draft}
-      className={`w-full rounded border border-amber-600/60 bg-zinc-900 px-1.5 py-0.5 text-sm text-zinc-100 outline-none ring-1 ring-amber-600/40 ${className}`}
+      className={`w-full rounded border border-[var(--brand-primary)]/30 bg-[var(--brand-surface)] px-1.5 py-0.5 text-sm text-[var(--brand-foreground)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 ${className}`}
       onChange={(e) => setDraft(e.target.value)}
       onBlur={commit}
       onKeyDown={(e) => {
@@ -114,7 +157,7 @@ function SelectCell({ value, options, onSave, readOnly }: SelectCellProps) {
     <select
       value={value}
       onChange={(e) => onSave(e.target.value)}
-      className="w-full rounded border border-amber-600/40 bg-zinc-900 px-1 py-0.5 text-xs text-zinc-100 outline-none ring-1 ring-amber-600/20"
+      className="w-full rounded border border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-1 py-0.5 text-xs text-[var(--brand-foreground)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30"
     >
       <option value="">—</option>
       {options.map((o) => (
@@ -134,14 +177,14 @@ interface CheckCellProps {
 
 function CheckCell({ value, onSave, readOnly }: CheckCellProps) {
   if (readOnly) {
-    return <span>{value ? "✓" : "—"}</span>;
+    return <span className="text-[var(--brand-foreground)]">{value ? "✓" : "—"}</span>;
   }
   return (
     <input
       type="checkbox"
       checked={value}
       onChange={(e) => onSave(e.target.checked)}
-      className="h-4 w-4 cursor-pointer accent-amber-500"
+      className="h-4 w-4 cursor-pointer accent-[var(--brand-accent)]"
     />
   );
 }
@@ -152,7 +195,7 @@ interface MailRowProps {
   row: MailGridRow;
   readOnly: boolean;
   onDelete: (id: string) => void;
-  onPatch: (id: string, patch: Partial<BackstageDeliverable> & { mailPiece?: MailPieceData }) => Promise<void>;
+  onPatch: (id: string, patch: Partial<BackstageDeliverable>) => Promise<void>;
 }
 
 function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
@@ -179,10 +222,12 @@ function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
     }
   }, [deliverable, onPatch]);
 
+  const dropIso = deliverable.due_to_client ?? deliverable.due_date ?? "";
+
   return (
-    <tr className="border-t border-zinc-800 text-xs text-zinc-200 hover:bg-white/[0.02]">
+    <tr className="border-t border-black/5 text-xs text-[var(--brand-foreground)] hover:bg-black/[0.02]">
       {/* # */}
-      <td className="px-3 py-2 text-zinc-500">
+      <td className="px-3 py-2 text-[var(--brand-muted)]">
         <EditCell
           value={mp.pieceNumber?.toString() ?? ""}
           type="number"
@@ -192,7 +237,7 @@ function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
         />
       </td>
       {/* Title */}
-      <td className="px-3 py-2 font-medium text-zinc-100">
+      <td className="px-3 py-2 font-medium">
         <EditCell
           value={deliverable.name}
           readOnly={readOnly}
@@ -210,13 +255,14 @@ function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
         />
       </td>
       {/* Units */}
-      <td className="px-3 py-2 tabular-nums">
+      <td className="px-3 py-2 tabular-nums text-right">
         <EditCell
           value={mp.units?.toString() ?? ""}
+          display={mp.units != null ? fmtNumber(mp.units) : ""}
           type="number"
           readOnly={readOnly}
           onSave={(v) => patchMail({ units: v ? parseInt(v, 10) : undefined })}
-          className="w-20"
+          className="w-20 text-right tabular-nums"
         />
       </td>
       {/* Size */}
@@ -229,33 +275,33 @@ function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
         />
       </td>
       {/* Unit Cost */}
-      <td className="px-3 py-2 tabular-nums">
+      <td className="px-3 py-2 tabular-nums text-right">
         <EditCell
           value={mp.unitCost?.toString() ?? ""}
+          display={mp.unitCost != null ? fmtCurrency(mp.unitCost) : ""}
           type="number"
           readOnly={readOnly}
           onSave={(v) => patchMail({ unitCost: v ? parseFloat(v) : undefined })}
-          className="w-20"
+          className="w-20 text-right tabular-nums"
         />
       </td>
       {/* Total Cost */}
-      <td className="px-3 py-2 tabular-nums">
-        {readOnly ? (
-          <span>{fmtCurrency(mp.totalCost)}</span>
-        ) : (
-          <EditCell
-            value={mp.totalCost?.toString() ?? ""}
-            type="number"
-            readOnly={readOnly}
-            onSave={(v) => patchMail({ totalCost: v ? parseFloat(v) : undefined })}
-            className="w-24"
-          />
-        )}
+      <td className="px-3 py-2 tabular-nums text-right">
+        <EditCell
+          value={mp.totalCost?.toString() ?? ""}
+          display={mp.totalCost != null ? fmtCurrency(mp.totalCost) : ""}
+          type="number"
+          readOnly={readOnly}
+          onSave={(v) => patchMail({ totalCost: v ? parseFloat(v) : undefined })}
+          className="w-24 text-right tabular-nums"
+        />
       </td>
       {/* Drop Date */}
       <td className="px-3 py-2">
         <EditCell
-          value={deliverable.due_to_client ?? deliverable.due_date ?? ""}
+          value={dropIso}
+          display={formatDropDate(dropIso)}
+          type="date"
           readOnly={readOnly}
           onSave={(v) => patchDeliverable({ due_to_client: v || null })}
           className="w-28"
@@ -314,7 +360,7 @@ function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
         <td className="px-3 py-2 text-center">
           <button
             onClick={() => onDelete(deliverable.id)}
-            className="rounded p-1 text-zinc-500 hover:bg-red-900/40 hover:text-red-400 transition-colors"
+            className="rounded p-1 text-[var(--brand-muted)] hover:bg-red-100 hover:text-red-700 transition-colors"
             title="Delete row"
           >
             ✕
@@ -324,7 +370,7 @@ function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
       {/* Saving indicator */}
       {saving && (
         <td className="px-2 py-2">
-          <span className="text-[0.6rem] text-amber-400 animate-pulse">saving…</span>
+          <span className="text-[0.6rem] text-[var(--brand-accent)] animate-pulse">saving…</span>
         </td>
       )}
     </tr>
@@ -372,7 +418,7 @@ function AddRow({ projectId, clientId: _clientId, onAdded }: AddRowProps) {
     return (
       <button
         onClick={() => setOpen(true)}
-        className="mt-2 flex items-center gap-1.5 rounded-full border border-dashed border-amber-700/50 px-3 py-1.5 text-xs font-medium text-amber-600 hover:border-amber-500 hover:text-amber-400 transition-colors"
+        className="mt-2 flex items-center gap-1.5 rounded-full border border-dashed border-[var(--brand-primary)]/30 px-3 py-1.5 text-xs font-medium text-[var(--brand-primary)] hover:border-[var(--brand-accent)] hover:text-[var(--brand-accent)] transition-colors"
       >
         + Add Mail Piece
       </button>
@@ -386,7 +432,7 @@ function AddRow({ projectId, clientId: _clientId, onAdded }: AddRowProps) {
         value={name}
         onChange={(e) => setName(e.target.value)}
         placeholder="Piece title…"
-        className="rounded-lg border border-amber-600/40 bg-zinc-900 px-3 py-1.5 text-sm text-zinc-100 outline-none ring-1 ring-amber-600/20 placeholder:text-zinc-600"
+        className="rounded-lg border border-[var(--brand-primary)]/20 bg-[var(--brand-surface)] px-3 py-1.5 text-sm text-[var(--brand-foreground)] outline-none focus:ring-2 focus:ring-[var(--brand-primary)]/30 placeholder:text-[var(--brand-muted)]/50"
         onKeyDown={(e) => {
           if (e.key === "Enter") handleAdd();
           if (e.key === "Escape") setOpen(false);
@@ -395,13 +441,13 @@ function AddRow({ projectId, clientId: _clientId, onAdded }: AddRowProps) {
       <button
         onClick={handleAdd}
         disabled={pending || !name.trim()}
-        className="rounded-lg bg-amber-700 px-3 py-1.5 text-xs font-semibold text-white hover:bg-amber-600 disabled:opacity-40 transition-colors"
+        className="rounded-lg bg-[var(--brand-primary)] px-3 py-1.5 text-xs font-semibold text-[var(--brand-on-primary)] hover:opacity-90 disabled:opacity-40 transition-opacity"
       >
         {pending ? "Adding…" : "Add"}
       </button>
       <button
         onClick={() => setOpen(false)}
-        className="text-xs text-zinc-500 hover:text-zinc-300"
+        className="text-xs text-[var(--brand-muted)] hover:text-[var(--brand-foreground)]"
       >
         Cancel
       </button>
@@ -418,6 +464,7 @@ interface GroupSectionProps {
 
 function GroupSection({ group, readOnly }: GroupSectionProps) {
   const [rows, setRows] = useState<MailGridRow[]>(group.rows);
+  const sortedRows = useMemo(() => sortRows(rows), [rows]);
 
   const handlePatch = useCallback(async (
     id: string,
@@ -458,25 +505,24 @@ function GroupSection({ group, readOnly }: GroupSectionProps) {
   const totalCost = rows.reduce((sum, r) => sum + (r.mailPiece.totalCost ?? 0), 0);
   const totalUnits = rows.reduce((sum, r) => sum + (r.mailPiece.units ?? 0), 0);
 
-  // Get client_id from first row for new row creation
   const clientId = rows[0]?.deliverable.client_id;
 
   return (
-    <section className="rounded-3xl border border-amber-900/30 bg-zinc-950 overflow-hidden">
+    <section className="rounded-3xl border border-black/10 bg-[var(--brand-surface)] overflow-hidden shadow-sm">
       {/* Group header */}
-      <div className="flex items-center justify-between gap-4 bg-amber-950/30 px-5 py-3 border-b border-amber-900/20">
+      <div className="flex items-center justify-between gap-4 bg-[var(--brand-surface-strong)] px-5 py-3 border-b border-black/5">
         <div>
-          <h2 className="text-sm font-bold text-amber-300 uppercase tracking-wide">
+          <h2 className="text-sm font-bold text-[var(--brand-foreground)] uppercase tracking-wide">
             {group.projectName}
           </h2>
-          <p className="text-[0.65rem] text-zinc-500 mt-0.5 uppercase tracking-wider">
+          <p className="text-[0.65rem] text-[var(--brand-muted)] mt-0.5 uppercase tracking-wider">
             Election Cycle · {group.projectStatus}
           </p>
         </div>
-        <div className="flex items-center gap-5 text-xs text-zinc-400">
+        <div className="flex items-center gap-5 text-xs text-[var(--brand-muted)]">
           <span>{rows.length} {rows.length === 1 ? "piece" : "pieces"}</span>
           <span className="tabular-nums">{fmtNumber(totalUnits)} units</span>
-          <span className="font-semibold text-amber-400 tabular-nums">{fmtCurrency(totalCost)}</span>
+          <span className="font-semibold text-[var(--brand-accent)] tabular-nums">{fmtCurrency(totalCost)}</span>
         </div>
       </div>
 
@@ -484,14 +530,14 @@ function GroupSection({ group, readOnly }: GroupSectionProps) {
       <div className="overflow-x-auto">
         <table className="w-full text-xs">
           <thead>
-            <tr className="bg-zinc-900 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-zinc-500">
+            <tr className="bg-[var(--brand-surface-strong)]/40 text-left text-[0.65rem] font-semibold uppercase tracking-wider text-[var(--brand-muted)]">
               <th className="px-3 py-2">#</th>
               <th className="px-3 py-2">Title</th>
               <th className="px-3 py-2">Universe</th>
-              <th className="px-3 py-2">Units</th>
+              <th className="px-3 py-2 text-right">Units</th>
               <th className="px-3 py-2">Size</th>
-              <th className="px-3 py-2">Unit Cost</th>
-              <th className="px-3 py-2">Total Cost</th>
+              <th className="px-3 py-2 text-right">Unit Cost</th>
+              <th className="px-3 py-2 text-right">Total Cost</th>
               <th className="px-3 py-2">Drop Date</th>
               <th className="px-3 py-2">Designer</th>
               <th className="px-3 py-2">Status</th>
@@ -502,14 +548,14 @@ function GroupSection({ group, readOnly }: GroupSectionProps) {
             </tr>
           </thead>
           <tbody>
-            {rows.length === 0 ? (
+            {sortedRows.length === 0 ? (
               <tr>
-                <td colSpan={readOnly ? 13 : 14} className="px-5 py-6 text-center text-xs text-zinc-600">
+                <td colSpan={readOnly ? 13 : 14} className="px-5 py-6 text-center text-xs text-[var(--brand-muted)]">
                   No mail pieces yet.
                 </td>
               </tr>
             ) : (
-              rows.map((row) => (
+              sortedRows.map((row) => (
                 <MailRow
                   key={row.deliverable.id}
                   row={row}
@@ -523,11 +569,11 @@ function GroupSection({ group, readOnly }: GroupSectionProps) {
           {/* Cost totals footer */}
           {rows.length > 0 && (
             <tfoot>
-              <tr className="border-t border-amber-900/30 bg-zinc-900/60 text-xs font-semibold text-zinc-300">
+              <tr className="border-t border-black/10 bg-[var(--brand-surface-strong)]/50 text-xs font-semibold text-[var(--brand-foreground)]">
                 <td className="px-3 py-2" colSpan={3}>Totals</td>
-                <td className="px-3 py-2 tabular-nums">{fmtNumber(totalUnits)}</td>
+                <td className="px-3 py-2 tabular-nums text-right">{fmtNumber(totalUnits)}</td>
                 <td className="px-3 py-2" colSpan={2}></td>
-                <td className="px-3 py-2 tabular-nums text-amber-300">{fmtCurrency(totalCost)}</td>
+                <td className="px-3 py-2 tabular-nums text-right text-[var(--brand-accent)]">{fmtCurrency(totalCost)}</td>
                 <td className="px-3 py-2" colSpan={readOnly ? 6 : 7}></td>
               </tr>
             </tfoot>
@@ -537,7 +583,7 @@ function GroupSection({ group, readOnly }: GroupSectionProps) {
 
       {/* Add row */}
       {!readOnly && (
-        <div className="px-5 py-3 border-t border-zinc-800">
+        <div className="px-5 py-3 border-t border-black/5">
           <AddRow
             projectId={group.projectId}
             clientId={clientId}
@@ -559,11 +605,11 @@ export interface MailGridProps {
 export function MailGrid({ groups, readOnly }: MailGridProps) {
   if (groups.length === 0) {
     return (
-      <div className="rounded-3xl border border-dashed border-zinc-700 bg-zinc-950 px-8 py-12 text-center">
-        <p className="text-sm text-zinc-500">
+      <div className="rounded-3xl border border-dashed border-black/15 bg-[var(--brand-surface)] px-8 py-12 text-center">
+        <p className="text-sm text-[var(--brand-muted)]">
           No mail deliverables found for the current scope.
         </p>
-        <p className="mt-1 text-xs text-zinc-600">
+        <p className="mt-1 text-xs text-[var(--brand-muted)]/70">
           Create a deliverable with type &quot;mail&quot; and it will appear here.
         </p>
       </div>
