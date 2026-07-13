@@ -354,6 +354,9 @@ function AddRow({ projectId, clientId: _clientId, onAdded }: AddRowProps) {
           project: projectId,
           name: name.trim(),
           deliverable_type: "mail",
+          // Seed the mail_piece notes block so the new deliverable is
+          // recognized as a mail piece on reload (isMailPiece checks for it).
+          notes_blocks: serializeMailPieceData(undefined, {}),
         }),
       });
       if (res.ok) {

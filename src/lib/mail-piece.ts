@@ -47,6 +47,21 @@ export interface MailPieceData {
 }
 
 /**
+ * True only when a deliverable carries the mail_piece notes block — i.e. it is
+ * an actual direct-mail piece, not just any deliverable in an election-cycle
+ * project. This is the authoritative "is this a mail piece?" signal, since the
+ * backend does not (yet) have a first-class deliverable_type=mail field.
+ */
+export function isMailPiece(
+  notesBlocks?: Array<{ title?: string; content?: string }>,
+): boolean {
+  if (!notesBlocks) return false;
+  return notesBlocks.some(
+    (b) => b.title?.trim() === MAIL_PIECE_BLOCK_TITLE && Boolean(b.content),
+  );
+}
+
+/**
  * Extract MailPieceData from a deliverable's notes_blocks.
  * Returns sensible defaults when the block is absent or malformed.
  */

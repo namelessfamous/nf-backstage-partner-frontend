@@ -2,7 +2,7 @@ import { redirect } from "next/navigation";
 import { getScopeContext } from "@/lib/scope";
 import { scopeHasPoliticalNiche } from "@/lib/political";
 import { apiList } from "@/lib/api";
-import { parseMailPieceData, fmtCurrency } from "@/lib/mail-piece";
+import { parseMailPieceData, isMailPiece, fmtCurrency } from "@/lib/mail-piece";
 import type { BackstageDeliverable, Project } from "@/types/api";
 import { MailGrid, type MailGridGroup } from "@/components/political/mail-grid";
 import { StatsCard } from "@/components/ui/stats-card";
@@ -19,25 +19,32 @@ export default async function PoliticalMailPage() {
 
   const { activeClientIds, active, isClientOnly } = scopeCtx;
 
-  // Fetch all deliverables scoped to active partner/client
-  let deliverablesPath = "/api/v1/deliverables/?deliverable_type=mail";
+  // Fetch deliverables scoped to active partner/client. The backend ignores an
+  // unknown deliverable_type query param, so we CANNOT rely on it to select mail
+  // pieces — we filter client-side by the presence of the mail_piece notes block
+  // (the authoritative signal). Not every deliverable in an election-cycle
+  // project is a mail piece.
+  let deliverablesPath = "/api/v1/deliverables/";
   if (active.type === "partner") {
-    deliverablesPath += `&partner=${encodeURIComponent(active.slug)}`;
+    deliverablesPath += `?partner=${encodeURIComponent(active.slug)}`;
   } else if (active.type === "client") {
-    deliverablesPath += `&client=${encodeURIComponent(active.slug)}`;
+    deliverablesPath += `?client=${encodeURIComponent(active.slug)}`;
   }
 
   const allDeliverables = await apiList<BackstageDeliverable>(deliverablesPath, {
     revalidate: 0,
   });
 
-  // Belt-and-suspenders: filter by activeClientIds
-  const mailDeliverables =
+  // Scope filter (activeClientIds) THEN mail-piece filter (has mail_piece block).
+  const scopedDeliverables =
     activeClientIds === null
       ? allDeliverables
       : allDeliverables.filter(
           (d) => d.client_id != null && activeClientIds.includes(d.client_id),
         );
+  const mailDeliverables = scopedDeliverables.filter((d) =>
+    isMailPiece(d.notes_blocks),
+  );
 
   // Group by project
   const projectMap = new Map<string, { name: string; status: string; items: BackstageDeliverable[] }>();
