@@ -75,6 +75,42 @@ export async function apiGet<T>(
 }
 
 /**
+ * POST variant of {@link apiGet}. Sends a JSON body and returns the parsed
+ * response, soft-degrading to null on transport/non-OK failures. Propagates
+ * {@link SessionExpiredError} on 401 so callers can redirect to re-auth.
+ */
+export async function apiPost<T>(
+  path: string,
+  body: unknown,
+  opts: FetchOptions = {},
+): Promise<T | null> {
+  const headers = await buildHeaders();
+  const revalidate = opts.revalidate === undefined ? 0 : opts.revalidate;
+
+  let res: Response;
+  try {
+    res = await fetch(`${BASE_URL}${path}`, {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body ?? {}),
+      next: revalidate === false ? { revalidate: 0 } : { revalidate },
+    });
+  } catch {
+    return null;
+  }
+
+  if (res.status === 401) throw new SessionExpiredError();
+  if (res.status === 403) return null;
+  if (!res.ok) return null;
+
+  try {
+    return (await res.json()) as T;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Soft-degrade helper for parallel fetches: swallow ordinary failures to an
  * empty array, but re-throw {@link SessionExpiredError} so a lapsed session
  * still triggers a redirect instead of a silent all-zero render.

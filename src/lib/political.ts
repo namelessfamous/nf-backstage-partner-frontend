@@ -1,4 +1,4 @@
-import { apiGet, apiList } from "@/lib/api";
+import { apiGet, apiList, apiPost } from "@/lib/api";
 import { getScopeContext, type ScopeContext } from "@/lib/scope";
 import type { Client } from "@/types/api";
 import {
@@ -433,4 +433,33 @@ export async function getVoterAnalytics(
     `/api/v1/datastore/stores/${storeId}/analytics/?${params.toString()}`,
     { revalidate: 0 },
   );
+}
+
+/**
+ * Server-side filtered row count for a voter-file store via the backend
+ * `preview` action. Uses the backend filter grammar
+ * ({ op, rules: [{ key, cmp, value }] }) so the Total Count stat reflects the
+ * applied geography filter accurately (analytics is not filter-aware).
+ *
+ * Returns null on any soft failure so callers can fall back to the whole-file
+ * count. limit=1 keeps the payload minimal — we only read `count`.
+ */
+export async function getFilteredVoterCount(
+  storeId: string,
+  filter: { col: string; val: string; cmp?: string },
+): Promise<number | null> {
+  const body = {
+    filter: {
+      op: "and",
+      rules: [{ key: filter.col, cmp: filter.cmp ?? "eq", value: filter.val }],
+    },
+    limit: 1,
+    offset: 0,
+  };
+  const res = await apiPost<{ count: number }>(
+    `/api/v1/datastore/stores/${storeId}/preview/`,
+    body,
+    { revalidate: 0 },
+  );
+  return typeof res?.count === "number" ? res.count : null;
 }

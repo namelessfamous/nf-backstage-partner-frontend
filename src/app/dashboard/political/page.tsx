@@ -5,6 +5,7 @@ import {
   getPoliticalLists,
   getPoliticalStores,
   getVoterAnalytics,
+  getFilteredVoterCount,
   scopeHasPoliticalNiche,
   politicalClientsInReach,
   POLITICAL_VIEWS,
@@ -13,17 +14,16 @@ import {
 import { PoliticalScopePrompt } from "@/components/political/political-scope-prompt";
 import { StatsCard } from "@/components/ui/stats-card";
 import {
-  BarChart,
   HBars,
   WidgetCard,
   partyColor,
-  genderColor,
 } from "@/components/political/analytics-widgets";
 import { AnalyticsToggle } from "@/components/political/analytics-toggle";
 import {
   SegmentFilterDropdown,
   segmentsForStore,
 } from "@/components/political/segment-filter-dropdown";
+import { VoterListView } from "@/components/political/voter-list-view";
 import type { VoterAnalyticsBar } from "@/lib/political-types";
 
 export const dynamic = "force-dynamic";
@@ -36,21 +36,23 @@ const VIEW_HREFS: Record<string, string> = {
 };
 
 type ElectionType = "primary" | "general";
-type Weight = "precinct" | "county";
+type GeoType = "county" | "ld" | "sd";
 
 export default async function PoliticalPage({
   searchParams,
 }: {
-  searchParams: Promise<{ store?: string; election?: string; weight?: string }>;
+  searchParams: Promise<{
+    store?: string;
+    election?: string;
+    weight?: string;
+    geoType?: string;
+    geoValue?: string;
+  }>;
 }) {
   const scopeCtx = await getScopeContext();
 
-  // Gate: the political dashboard requires a political / public-affairs client
-  // in the ACTIVE scope (Task 5).
+  // ── Niche gate (unchanged) ──────────────────────────────────────────────
   if (!scopeHasPoliticalNiche(scopeCtx)) {
-    // If the user can reach political clients through another scope, offer a
-    // scope picker instead of silently bouncing. If none exist at all, there's
-    // nothing political to show — send them back to the dashboard.
     const reachable = politicalClientsInReach(scopeCtx);
     if (reachable.length === 0) {
       redirect("/dashboard");
@@ -73,55 +75,79 @@ export default async function PoliticalPage({
     getPoliticalStores(scopeCtx),
   ]);
 
-  // Only master voter files (not donor/contact) drive the analytics widgets.
+  // Only master voter files drive the analytics widgets.
   const voterFiles = politicalStores.filter(
     (s) => s.kind === "voter_file" && s.rowCount > 0,
   );
 
   const activeStore =
     voterFiles.find((s) => s.id === sp.store) ?? voterFiles[0] ?? null;
-  const electionType: ElectionType = sp.election === "general" ? "general" : "primary";
-  const weight: Weight = sp.weight === "county" ? "county" : "precinct";
+  const electionType: ElectionType =
+    sp.election === "general" ? "general" : "primary";
+  const geoType: GeoType =
+    sp.geoType === "ld" ? "ld" : sp.geoType === "sd" ? "sd" : "county";
+  const geoValue: string = sp.geoValue ?? "";
 
   const analytics = activeStore
     ? await getVoterAnalytics(activeStore.id, {
         electionType,
-        weight,
+        weight: "county", // always county for overview
         top: 25,
       })
     : null;
 
-  const scopeHeading =
-    scopeCtx.active.type === "partner" || scopeCtx.active.type === "client"
-      ? `Political — ${scopeCtx.active.name}`
-      : "Political";
+  // Total Count reflects the applied geography filter. analytics is NOT
+  // filter-aware, so when a county is selected we ask the backend `preview`
+  // action for the true filtered row count. Falls back to the whole-file
+  // analyzed/row count when no filter is active or the count fetch soft-fails.
+  const filteredCount =
+    activeStore && geoType === "county" && geoValue
+      ? await getFilteredVoterCount(activeStore.id, {
+          col: "CountyName",
+          val: geoValue,
+        })
+      : null;
 
-  const voterFileTotal = politicalStores.reduce((n, s) => n + s.rowCount, 0);
+  // ── Title / subtitle ─────────────────────────────────────────────────────
+  let clientSubtitle: string | null = null;
+  if (
+    scopeCtx.active.type === "client" ||
+    scopeCtx.active.type === "partner"
+  ) {
+    clientSubtitle = scopeCtx.active.name;
+  } else if (activeStore?.clientName) {
+    clientSubtitle = activeStore.clientName;
+  }
 
-  // Party share KPIs
-  const totalOfficial =
-    analytics?.official_party.reduce((s, d) => s + d.value, 0) ?? 0;
-  const repCount =
-    analytics?.official_party.find((d) => d.label.toLowerCase().startsWith("rep"))
-      ?.value ?? 0;
-  const demCount =
-    analytics?.official_party.find((d) => d.label.toLowerCase().startsWith("dem"))
-      ?.value ?? 0;
-  const repShare = totalOfficial ? (repCount / totalOfficial) * 100 : 0;
-  const demShare = totalOfficial ? (demCount / totalOfficial) * 100 : 0;
-
+  // ── Shared URL params ────────────────────────────────────────────────────
   const baseParams: Record<string, string> = {
     ...(activeStore ? { store: activeStore.id } : {}),
     election: electionType,
-    weight,
+    geoType,
+    ...(geoValue ? { geoValue } : {}),
   };
 
-  // Segments of the active voter-file store, for the per-row Filter dropdowns.
+  // ── Party KPIs ───────────────────────────────────────────────────────────
+  const totalOfficial =
+    analytics?.official_party.reduce((s, d) => s + d.value, 0) ?? 0;
+  const repCount =
+    analytics?.official_party.find((d) =>
+      d.label.toLowerCase().startsWith("rep"),
+    )?.value ?? 0;
+  const demCount =
+    analytics?.official_party.find((d) =>
+      d.label.toLowerCase().startsWith("dem"),
+    )?.value ?? 0;
+  const otherCount = totalOfficial - repCount - demCount;
+  const repShare = totalOfficial ? (repCount / totalOfficial) * 100 : 0;
+  const demShare = totalOfficial ? (demCount / totalOfficial) * 100 : 0;
+  const otherShare = totalOfficial ? (otherCount / totalOfficial) * 100 : 0;
+
+  // ── Segments for filter dropdowns ────────────────────────────────────────
   const storeSegments = activeStore
     ? segmentsForStore(grouped, activeStore.id)
     : [];
 
-  // Per-row Filter dropdown factory for horizontal-bar widgets.
   const rowFilter = (colLabel: string) => (bar: VoterAnalyticsBar) => (
     <SegmentFilterDropdown
       col={bar.filter_col}
@@ -132,143 +158,285 @@ export default async function PoliticalPage({
     />
   );
 
+  // ── County options for geo picker ─────────────────────────────────────────
+  const countyOptions = (analytics?.county_counts ?? []).map((c) => c.label);
+
+  // ── Geo filter for voter list ─────────────────────────────────────────────
+  // Only county is supported in the backend today.
+  const voterListFilter =
+    geoType === "county" && geoValue
+      ? { col: "CountyName", val: geoValue, label: "County" }
+      : null;
+
+  // ── Columns for voter list ────────────────────────────────────────────────
+  // Derive from active store columns or fall back to empty array (component will
+  // use whatever keys the rows contain).
+  const voterColumns = (activeStore?.columns ?? [])
+    .filter((c) => c.key)
+    .map((c) => ({ key: c.key, label: c.label ?? c.key }));
+
   return (
     <div className="space-y-8">
-      {/* Header */}
+      {/* ── 1. TITLE BLOCK ─────────────────────────────────────────────── */}
       <div>
-        <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">
-          {scopeHeading}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          Voter-file analytics — party, turnout frequency, demographics, and
-          weighted precinct targeting from your master voter file.
+        <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-[var(--brand-muted)]">
+          Political
         </p>
+        <h1 className="mt-0.5 text-3xl font-semibold text-[var(--brand-foreground)] sm:text-4xl">
+          Dashboard
+        </h1>
+        {clientSubtitle && (
+          <p className="mt-1 text-sm text-[var(--brand-muted)]">
+            Client — {clientSubtitle}
+          </p>
+        )}
       </div>
 
-      {/* Overview stats */}
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
-        <StatsCard
-          label="Voters Analyzed"
-          value={
-            analytics
-              ? analytics.analyzed_rows.toLocaleString()
-              : voterFileTotal.toLocaleString()
-          }
-          sub={activeStore?.name ?? `${voterFiles.length} voter files`}
-        />
-        <StatsCard
-          label="Republican"
-          value={totalOfficial ? `${repShare.toFixed(1)}%` : "—"}
-          sub={totalOfficial ? `${repCount.toLocaleString()} voters` : undefined}
-        />
-        <StatsCard
-          label="Democrat"
-          value={totalOfficial ? `${demShare.toFixed(1)}%` : "—"}
-          sub={totalOfficial ? `${demCount.toLocaleString()} voters` : undefined}
-        />
-        <StatsCard
-          label="Median Age"
-          value={
-            analytics?.age_stats.median != null
-              ? String(analytics.age_stats.median)
-              : "—"
-          }
-          sub={
-            analytics?.age_stats.mean != null
-              ? `mean ${analytics.age_stats.mean}`
-              : undefined
-          }
-        />
-      </div>
-
-      {/* Analytics controls */}
+      {/* ── 2 + 3. FILTERS BAR ─────────────────────────────────────────── */}
       {voterFiles.length > 0 && (
-        <div className="flex flex-wrap items-end gap-4 rounded-3xl bg-[var(--brand-surface-strong)]/40 p-4">
-          {voterFiles.length > 1 && (
+        <div className="rounded-3xl bg-[var(--brand-surface-strong)]/40 border border-black/5 p-4">
+          <div className="flex flex-wrap items-end gap-4">
+            {/* Voter file picker (only when multiple files) */}
+            {voterFiles.length > 1 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                  Voter File
+                </span>
+                <div className="flex flex-wrap gap-1.5">
+                  {voterFiles.map((s) => {
+                    const active = s.id === activeStore?.id;
+                    const params = new URLSearchParams({
+                      ...baseParams,
+                      store: s.id,
+                    });
+                    return (
+                      <Link
+                        key={s.id}
+                        href={`?${params.toString()}`}
+                        scroll={false}
+                        className={
+                          active
+                            ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#fff)]"
+                            : "rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
+                        }
+                      >
+                        {s.name} ({s.rowCount.toLocaleString()})
+                      </Link>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Saved segments dropdown */}
+            {storeSegments.length > 0 && (
+              <div className="flex flex-col gap-1.5">
+                <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                  Segments
+                </span>
+                <details className="group relative inline-block">
+                  <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)] [&::-webkit-details-marker]:hidden">
+                    Saved Segments ({storeSegments.length})
+                    <span className="transition group-open:rotate-90">›</span>
+                  </summary>
+                  <div className="absolute z-30 mt-1 min-w-[13rem] rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg">
+                    {POLITICAL_VIEWS.map((view) => {
+                      const segsForView = storeSegments.filter(
+                        (s) => s.view === view,
+                      );
+                      if (segsForView.length === 0) return null;
+                      return (
+                        <div key={view} className="py-0.5">
+                          <p className="px-2 pb-0.5 pt-1 text-[0.6rem] font-semibold uppercase tracking-wide text-[var(--brand-muted)]/70">
+                            {POLITICAL_VIEW_META[view].label}
+                          </p>
+                          {segsForView.map((seg) => (
+                            <Link
+                              key={seg.id}
+                              href={`/dashboard/political/${seg.view}/${seg.id}`}
+                              className="block rounded-lg px-2 py-1.5 text-xs text-[var(--brand-foreground)] transition hover:bg-[var(--brand-primary)]/10"
+                            >
+                              {seg.name}
+                            </Link>
+                          ))}
+                        </div>
+                      );
+                    })}
+                  </div>
+                </details>
+              </div>
+            )}
+
+            {/* Geography filter */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
-                Voter File
+                Geography
               </span>
-              <div className="flex flex-wrap gap-1.5">
-                {voterFiles.map((s) => {
-                  const active = s.id === activeStore?.id;
-                  const params = new URLSearchParams({
-                    ...baseParams,
-                    store: s.id,
-                  });
-                  return (
-                    <Link
-                      key={s.id}
-                      href={`?${params.toString()}`}
-                      scroll={false}
-                      className={
-                        active
-                          ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#fff)]"
-                          : "rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
-                      }
-                    >
-                      {s.name} ({s.rowCount.toLocaleString()})
-                    </Link>
-                  );
-                })}
+              <div className="flex items-center gap-2">
+                {/* GeoType selector */}
+                <div className="inline-flex rounded-full bg-[var(--brand-surface-strong)] p-0.5">
+                  {(
+                    [
+                      { value: "county", label: "County" },
+                      { value: "ld", label: "LD", disabled: true },
+                      { value: "sd", label: "SD", disabled: true },
+                    ] as { value: GeoType; label: string; disabled?: boolean }[]
+                  ).map((opt) => {
+                    if (opt.disabled) {
+                      return (
+                        <span
+                          key={opt.value}
+                          title="Coming soon — backend has no LD/SD column mapping yet"
+                          className="rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)]/40 cursor-not-allowed select-none"
+                        >
+                          {opt.label}
+                        </span>
+                      );
+                    }
+                    const active = geoType === opt.value;
+                    const params = new URLSearchParams({
+                      ...baseParams,
+                      geoType: opt.value,
+                    });
+                    // Clear geoValue when switching geoType
+                    params.delete("geoValue");
+                    return (
+                      <Link
+                        key={opt.value}
+                        href={`?${params.toString()}`}
+                        scroll={false}
+                        className={
+                          active
+                            ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#fff)]"
+                            : "rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
+                        }
+                      >
+                        {opt.label}
+                      </Link>
+                    );
+                  })}
+                </div>
+
+                {/* County value selector */}
+                {geoType === "county" && countyOptions.length > 0 && (
+                  <GeoValueSelect
+                    options={countyOptions}
+                    current={geoValue}
+                    baseParams={baseParams}
+                    geoType="county"
+                  />
+                )}
+
+                {/* LD/SD coming-soon note */}
+                {(geoType === "ld" || geoType === "sd") && (
+                  <span className="text-[0.7rem] text-[var(--brand-muted)] italic">
+                    Coming soon — no backend column mapping yet
+                  </span>
+                )}
               </div>
             </div>
-          )}
 
-          <AnalyticsToggle
-            paramKey="election"
-            current={electionType}
-            labelText="Election Type"
-            baseParams={baseParams}
-            options={[
-              { value: "primary", label: "Primary" },
-              { value: "general", label: "General" },
-            ]}
-          />
-          <AnalyticsToggle
-            paramKey="weight"
-            current={weight}
-            labelText="Weight By"
-            baseParams={baseParams}
-            options={[
-              { value: "precinct", label: "Precincts" },
-              { value: "county", label: "Counties" },
-            ]}
-          />
+            {/* Election type toggle */}
+            <AnalyticsToggle
+              paramKey="election"
+              current={electionType}
+              labelText="Frequency"
+              baseParams={baseParams}
+              options={[
+                { value: "primary", label: "Primary" },
+                { value: "general", label: "General" },
+              ]}
+            />
+          </div>
         </div>
       )}
 
-      {/* Analytics widgets */}
+      {/* ── 4. STATS ROW ───────────────────────────────────────────────── */}
+      <div>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
+          {/* Total Count — reflects geo filter when county is selected */}
+          <StatsCard
+            label="Total Voters"
+            value={
+              filteredCount != null
+                ? filteredCount.toLocaleString()
+                : analytics
+                  ? analytics.analyzed_rows.toLocaleString()
+                  : (activeStore?.rowCount ?? 0).toLocaleString()
+            }
+            sub={
+              geoValue && geoType === "county"
+                ? `${geoValue} County${filteredCount == null ? " (filtering…)" : ""}`
+                : activeStore?.name ?? `${voterFiles.length} voter files`
+            }
+          />
+
+          {/* Republican */}
+          <StatsCard
+            label="Republican"
+            value={totalOfficial ? `${repShare.toFixed(1)}%` : "—"}
+            sub={
+              totalOfficial
+                ? `${repCount.toLocaleString()} voters${geoValue ? " · whole file" : ""}`
+                : undefined
+            }
+          />
+
+          {/* Democrat */}
+          <StatsCard
+            label="Democrat"
+            value={totalOfficial ? `${demShare.toFixed(1)}%` : "—"}
+            sub={
+              totalOfficial
+                ? `${demCount.toLocaleString()} voters${geoValue ? " · whole file" : ""}`
+                : undefined
+            }
+          />
+
+          {/* Other */}
+          <StatsCard
+            label="Other / Unaffiliated"
+            value={totalOfficial ? `${otherShare.toFixed(1)}%` : "—"}
+            sub={
+              totalOfficial
+                ? `${otherCount.toLocaleString()} voters${geoValue ? " · whole file" : ""}`
+                : undefined
+            }
+          />
+        </div>
+
+        {/* Muted note when a geo filter is active — analytics not filter-aware */}
+        {geoValue && (
+          <p className="mt-2 text-[0.7rem] text-[var(--brand-muted)] italic">
+            ℹ️ Party &amp; frequency figures reflect the <strong>whole voter file</strong>.
+            The analytics endpoint does not support geography filtering server-side.
+          </p>
+        )}
+      </div>
+
+      {/* Analytics widgets (party / frequency / by-tags placeholder) */}
       {activeStore && analytics ? (
         <div className="space-y-4">
-          {/* Party breakdowns */}
-          <div className="grid gap-4 md:grid-cols-2">
-            <WidgetCard title="Official Party" subtitle="Registered party of record">
+          {/* Party + Tags row */}
+          <div className="grid gap-4 md:grid-cols-3">
+            <WidgetCard
+              title="Official Party"
+              subtitle={
+                geoValue
+                  ? "Whole file — analytics not filter-aware"
+                  : "Registered party of record"
+              }
+            >
               <HBars
                 data={analytics.official_party}
                 colorFn={partyColor}
                 renderRowAction={rowFilter("Party")}
               />
             </WidgetCard>
-            <WidgetCard
-              title="Household Party"
-              subtitle="Party composition by household"
-            >
-              <HBars
-                data={analytics.household_party}
-                colorFn={partyColor}
-                renderRowAction={rowFilter("Household Party")}
-              />
-            </WidgetCard>
-          </div>
 
-          {/* Frequency + Gender */}
-          <div className="grid gap-4 md:grid-cols-2">
             <WidgetCard
               title="Voter Frequency"
-              subtitle={`${
-                electionType === "primary" ? "Primary" : "General"
-              } elections voted (of last 4 cycles)`}
+              subtitle={`${electionType === "primary" ? "Primary" : "General"} elections voted (of last 4 cycles)${geoValue ? " · whole file" : ""}`}
             >
               <HBars
                 data={analytics.frequency}
@@ -280,102 +448,27 @@ export default async function PoliticalPage({
                 )}
               />
             </WidgetCard>
-            <WidgetCard title="Gender">
-              <HBars
-                data={analytics.gender}
-                colorFn={genderColor}
-                renderRowAction={rowFilter("Gender")}
-              />
+
+            {/* By Tags — coming soon */}
+            <WidgetCard
+              title="By Tags"
+              subtitle="DataStore record tags — coming soon"
+            >
+              <div className="flex h-full flex-col items-center justify-center gap-2 py-6">
+                <span className="text-2xl">🏷️</span>
+                <p className="text-center text-xs text-[var(--brand-muted)]">
+                  Tag-based aggregation requires a backend{" "}
+                  <code className="rounded bg-[var(--brand-surface-strong)] px-1 py-0.5 text-[0.65rem]">
+                    DataStoreRecordTag
+                  </code>{" "}
+                  aggregation endpoint.
+                </p>
+                <p className="text-center text-[0.65rem] text-[var(--brand-muted)]/60">
+                  Coming soon — no tag-aggregation API yet
+                </p>
+              </div>
             </WidgetCard>
           </div>
-
-          {/* Age histogram */}
-          <WidgetCard
-            title="Age Distribution"
-            subtitle={
-              analytics.age_stats.count
-                ? `${analytics.age_stats.count.toLocaleString()} voters · ${
-                    analytics.age_stats.min
-                  }–${analytics.age_stats.max} yrs · median ${
-                    analytics.age_stats.median
-                  }`
-                : undefined
-            }
-          >
-            <BarChart data={analytics.age_histogram} height={220} />
-          </WidgetCard>
-
-          {/* Weighted ranking */}
-          <WidgetCard
-            title={`Weighted ${weight === "county" ? "County" : "Precinct"} Ranking`}
-            subtitle={`${
-              electionType === "primary" ? "Primary" : "General"
-            } frequency ÷ 4 — highest-turnout targets first`}
-          >
-            {analytics.weighted_ranking.length ? (
-              <div className="overflow-hidden rounded-2xl border border-black/5">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-[var(--brand-surface-strong)]/60 text-left text-xs text-[var(--brand-muted)]">
-                      <th className="px-3 py-2 font-medium">#</th>
-                      <th className="px-3 py-2 font-medium">
-                        {weight === "county" ? "County" : "County–Precinct"}
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">
-                        Weighted Votes
-                      </th>
-                      <th className="px-3 py-2 text-right font-medium">Filter</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {analytics.weighted_ranking.map((r, i) => (
-                      <tr
-                        key={r.label}
-                        className="border-t border-black/5 text-[var(--brand-foreground)]"
-                      >
-                        <td className="px-3 py-2 text-[var(--brand-muted)]">
-                          {i + 1}
-                        </td>
-                        <td className="px-3 py-2 font-medium">{r.label}</td>
-                        <td className="px-3 py-2 text-right tabular-nums">
-                          {r.value.toLocaleString(undefined, {
-                            maximumFractionDigits: 2,
-                          })}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          <SegmentFilterDropdown
-                            col={r.filter_col}
-                            val={r.filter_val}
-                            label={weight === "county" ? "County" : "Precinct"}
-                            segments={storeSegments}
-                            align="right"
-                          />
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            ) : (
-              <p className="py-6 text-center text-xs text-[var(--brand-muted)]">
-                This voter file has no precinct/frequency columns.
-              </p>
-            )}
-          </WidgetCard>
-
-          {/* County counts */}
-          {analytics.county_counts.length > 1 && (
-            <WidgetCard
-              title="County Counts"
-              subtitle="Voters per county in this file"
-            >
-              <HBars
-                data={analytics.county_counts.slice(0, 20)}
-                colorFn={() => "var(--brand-primary)"}
-                renderRowAction={rowFilter("County")}
-              />
-            </WidgetCard>
-          )}
         </div>
       ) : voterFiles.length === 0 ? (
         <div className="rounded-3xl bg-[var(--brand-surface-strong)]/40 p-8 text-center">
@@ -393,7 +486,34 @@ export default async function PoliticalPage({
         </div>
       )}
 
-      {/* Submodule navigation cards — walk / call / fundraising list building */}
+      {/* ── 5. VOTER LIST ──────────────────────────────────────────────── */}
+      {activeStore ? (
+        <section>
+          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+            Voter File
+            {geoValue && geoType === "county"
+              ? ` — ${geoValue} County`
+              : ""}
+          </h2>
+          <div className="rounded-3xl border border-black/5 bg-[var(--brand-surface-strong)]/30 p-4 sm:p-5">
+            {voterColumns.length > 0 ? (
+              <VoterListView
+                storeId={activeStore.id}
+                storeName={activeStore.name}
+                columns={voterColumns}
+                initialCount={activeStore.rowCount}
+                initialFilter={voterListFilter}
+              />
+            ) : (
+              <p className="py-6 text-center text-sm text-[var(--brand-muted)]">
+                This voter file has no column schema defined yet.
+              </p>
+            )}
+          </div>
+        </section>
+      ) : null}
+
+      {/* ── List Building nav cards (preserved, moved below voter list) ── */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
           List Building
@@ -428,7 +548,7 @@ export default async function PoliticalPage({
         </div>
       </div>
 
-      {/* Direct Mail tracking card */}
+      {/* ── Campaign Operations (preserved) ────────────────────────────── */}
       <div>
         <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
           Campaign Operations
@@ -455,5 +575,57 @@ export default async function PoliticalPage({
         </div>
       </div>
     </div>
+  );
+}
+
+// ── GeoValueSelect — server component link-based county picker ────────────
+// Native <select> needs "use client". We use a small details/links pattern
+// instead to stay server-only, consistent with SegmentFilterDropdown + AnalyticsToggle.
+
+function GeoValueSelect({
+  options,
+  current,
+  baseParams,
+  geoType,
+}: {
+  options: string[];
+  current: string;
+  baseParams: Record<string, string>;
+  geoType: GeoType;
+}) {
+  const label = current || "All counties";
+  return (
+    <details className="group relative inline-block">
+      <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-full bg-[var(--brand-surface-strong)] px-3 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)] [&::-webkit-details-marker]:hidden">
+        {label}
+        <span className="transition group-open:rotate-90">›</span>
+      </summary>
+      <div className="absolute z-30 mt-1 max-h-60 min-w-[11rem] overflow-y-auto rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg">
+        {/* Clear filter */}
+        {current && (
+          <Link
+            href={`?${new URLSearchParams({ ...baseParams, geoType, geoValue: "" }).toString()}`}
+            scroll={false}
+            className="block rounded-lg px-2 py-1.5 text-xs text-[var(--brand-muted)] transition hover:bg-[var(--brand-primary)]/10"
+          >
+            All counties
+          </Link>
+        )}
+        {options.map((opt) => (
+          <Link
+            key={opt}
+            href={`?${new URLSearchParams({ ...baseParams, geoType, geoValue: opt }).toString()}`}
+            scroll={false}
+            className={`block rounded-lg px-2 py-1.5 text-xs transition hover:bg-[var(--brand-primary)]/10 ${
+              opt === current
+                ? "font-semibold text-[var(--brand-primary)]"
+                : "text-[var(--brand-foreground)]"
+            }`}
+          >
+            {opt}
+          </Link>
+        ))}
+      </div>
+    </details>
   );
 }
