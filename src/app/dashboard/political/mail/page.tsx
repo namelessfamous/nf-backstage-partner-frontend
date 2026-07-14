@@ -6,6 +6,10 @@ import { parseMailPieceData, isMailPiece, fmtCurrency } from "@/lib/mail-piece";
 import type { BackstageDeliverable, Project } from "@/types/api";
 import { MailGrid, type MailGridGroup } from "@/components/political/mail-grid";
 import { StatsCard } from "@/components/ui/stats-card";
+import {
+  PoliticalModuleHeader,
+  scopeSubtitle,
+} from "@/components/political/political-module-header";
 
 export const dynamic = "force-dynamic";
 
@@ -88,23 +92,13 @@ export default async function PoliticalMailPage() {
     return mp.invoiced === true;
   }).length;
 
-  const scopeHeading =
-    active.type === "partner" || active.type === "client"
-      ? `Direct Mail — ${active.name}`
-      : "Direct Mail";
-
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">
-          {scopeHeading}
-        </h1>
-        <p className="mt-1 text-sm text-[var(--brand-muted)]">
-          Campaign direct-mail tracking — grouped by election cycle. Manage
-          pieces, universe sizes, costs, print status, and drop dates.
-        </p>
-      </div>
+      {/* Header — matches /dashboard/political title pattern */}
+      <PoliticalModuleHeader
+        title="Direct Mail"
+        clientSubtitle={scopeSubtitle(active)}
+      />
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">

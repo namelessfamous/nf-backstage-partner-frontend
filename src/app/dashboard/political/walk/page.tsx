@@ -8,6 +8,10 @@ import {
 } from "@/lib/political";
 import { StatsCard } from "@/components/ui/stats-card";
 import { PoliticalListView } from "@/components/political/political-list-view";
+import {
+  PoliticalModuleHeader,
+  scopeSubtitle,
+} from "@/components/political/political-module-header";
 
 export const dynamic = "force-dynamic";
 
@@ -32,13 +36,11 @@ export default async function PoliticalWalkPage() {
 
   return (
     <div className="space-y-8">
-      {/* Header */}
-      <div>
-        <h1 className="text-2xl font-semibold text-[var(--brand-foreground)]">
-          Political Door-to-Door Dashboard
-        </h1>
-        <p className="mt-1 text-sm text-[var(--brand-muted)]">{meta.blurb}</p>
-      </div>
+      {/* Header — matches /dashboard/political title pattern */}
+      <PoliticalModuleHeader
+        title={meta.label}
+        clientSubtitle={scopeSubtitle(scopeCtx.active)}
+      />
 
       {/* Stats row — Change 1: voter file total from store, not segment sum */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
