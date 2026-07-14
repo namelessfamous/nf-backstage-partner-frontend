@@ -77,6 +77,8 @@ interface Segment {
   purpose: string; // "walk" | "call" | "fundraising" | "sms" | ...
   count?: number;
   is_live?: boolean;
+  filter?: unknown; // criteria tree {op, rules:[{key,cmp,value}]}
+  sort?: unknown; // [{key, dir}]
 }
 
 interface ResolveResponse {
@@ -352,6 +354,7 @@ export async function getPoliticalLists(
             storeName: store.name,
             storeId: store.id,
             clientName,
+            filter: seg.filter ?? null,
           });
         }),
       );

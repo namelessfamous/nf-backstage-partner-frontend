@@ -76,6 +76,13 @@ export interface PoliticalListRow {
   storeId: string;
   /** Owning client display name. */
   clientName?: string;
+  /**
+   * The segment's criteria tree ({op, rules:[{key,cmp,value}]}), used to
+   * APPLY the segment's filter to the dashboard in-place (instead of
+   * navigating to the segment detail page). Null when the segment has no
+   * stored filter.
+   */
+  filter?: unknown;
 }
 
 /**

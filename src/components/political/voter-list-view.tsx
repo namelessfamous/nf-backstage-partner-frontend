@@ -36,6 +36,11 @@ interface PreviewResponse {
   results: RecordData[];
 }
 
+export interface FilterDef {
+  op: "and" | "or";
+  rules: Array<{ key: string; cmp: string; value: unknown } | FilterDef>;
+}
+
 export interface VoterListViewProps {
   storeId: string;
   storeName: string;
@@ -47,6 +52,12 @@ export interface VoterListViewProps {
    * col: the store column key (e.g. "CountyName"), val: the filter value.
    */
   initialFilter?: { col: string; val: string; label?: string } | null;
+  /**
+   * Full filter_def override. When provided, this is sent verbatim as body.filter
+   * (bypassing the single-column colFilter build). Takes precedence over initialFilter.
+   * Re-fetches whenever this value changes (compared by JSON equality).
+   */
+  filterDef?: FilterDef | null;
 }
 
 // ---------------------------------------------------------------------------
@@ -207,6 +218,7 @@ export function VoterListView({
   columns,
   initialCount,
   initialFilter = null,
+  filterDef = null,
 }: VoterListViewProps) {
   // Geo/column filter (passed in from parent URL state; user can clear)
   const [colFilter, setColFilter] = useState(initialFilter);
@@ -242,6 +254,7 @@ export function VoterListView({
       sortCol: string | null;
       sortDir: SortDir;
       colFilter: { col: string; val: string; label?: string } | null;
+      filterDef?: FilterDef | null;
     }) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const body: Record<string, any> = {
@@ -249,38 +262,56 @@ export function VoterListView({
         offset: opts.page * opts.pageSize,
       };
 
-      // Backend filter grammar (SegmentResolver._build_q):
-      //   { op: "and" | "or", rules: [{ key, cmp, value }] }
-      // cmp: eq | ne | gt | gte | lt | lte | contains | in | exists
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const rules: Record<string, any>[] = [];
+      if (opts.filterDef) {
+        // Full filter_def override — used when parent drives the filter state.
+        // If there is also a search term, AND it with the override.
+        if (opts.search) {
+          const searchGroup = {
+            op: "or",
+            rules: columns.map((c) => ({
+              key: c.key,
+              cmp: "contains",
+              value: opts.search,
+            })),
+          };
+          body.filter = { op: "and", rules: [opts.filterDef, searchGroup] };
+        } else {
+          body.filter = opts.filterDef;
+        }
+      } else {
+        // Backend filter grammar (SegmentResolver._build_q):
+        //   { op: "and" | "or", rules: [{ key, cmp, value }] }
+        // cmp: eq | ne | gt | gte | lt | lte | contains | in | exists
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const rules: Record<string, any>[] = [];
 
-      // Equality filter on a single column (geo filter from URL state).
-      if (opts.colFilter) {
-        rules.push({
-          key: opts.colFilter.col,
-          cmp: "eq",
-          value: opts.colFilter.val,
-        });
-      }
+        // Equality filter on a single column (geo filter from URL state).
+        if (opts.colFilter) {
+          rules.push({
+            key: opts.colFilter.col,
+            cmp: "eq",
+            value: opts.colFilter.val,
+          });
+        }
 
-      // Global search: the preview endpoint has no dedicated text-search param,
-      // so approximate it as a case-insensitive `contains` across the visible
-      // columns (OR group). Combined with the geo filter under a top-level AND.
-      if (opts.search) {
-        const searchGroup = {
-          op: "or",
-          rules: columns.map((c) => ({
-            key: c.key,
-            cmp: "contains",
-            value: opts.search,
-          })),
-        };
-        rules.push(searchGroup);
-      }
+        // Global search: the preview endpoint has no dedicated text-search param,
+        // so approximate it as a case-insensitive `contains` across the visible
+        // columns (OR group). Combined with the geo filter under a top-level AND.
+        if (opts.search) {
+          const searchGroup = {
+            op: "or",
+            rules: columns.map((c) => ({
+              key: c.key,
+              cmp: "contains",
+              value: opts.search,
+            })),
+          };
+          rules.push(searchGroup);
+        }
 
-      if (rules.length > 0) {
-        body.filter = { op: "and", rules };
+        if (rules.length > 0) {
+          body.filter = { op: "and", rules };
+        }
       }
 
       // Backend sort grammar: [{ key, dir: "asc" | "desc" }]
@@ -302,11 +333,12 @@ export function VoterListView({
       sortCol: string | null;
       sortDir: SortDir;
       colFilter: { col: string; val: string; label?: string } | null;
+      filterDef?: FilterDef | null;
     }) => {
       setLoading(true);
       setError(null);
       try {
-        const hasFilterOrSort = !!(opts.colFilter || opts.sortCol || opts.search);
+        const hasFilterOrSort = !!(opts.filterDef || opts.colFilter || opts.sortCol || opts.search);
 
         if (hasFilterOrSort) {
           // Use the preview (POST) endpoint for filter + sort
@@ -366,17 +398,24 @@ export function VoterListView({
     [storeId, buildBody],
   );
 
+  // Stable JSON key for filterDef — avoids referential equality false-positives
+  const filterDefKey = filterDef ? JSON.stringify(filterDef) : null;
+
   // Fetch on mount and whenever dependencies change
   useEffect(() => {
-    fetchPage({ page, pageSize, search, sortCol, sortDir, colFilter });
-  }, [page, pageSize, search, sortCol, sortDir, colFilter, fetchPage]);
+    fetchPage({ page, pageSize, search, sortCol, sortDir, colFilter, filterDef });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [page, pageSize, search, sortCol, sortDir, colFilter, filterDefKey, fetchPage]);
 
-  // Sync initialFilter prop changes (e.g. when URL param changes and parent re-renders)
+  // Sync initialFilter prop changes (e.g. when URL param changes and parent re-renders).
+  // When filterDef is provided, it takes precedence — reset page only.
   useEffect(() => {
-    setColFilter(initialFilter ?? null);
+    if (!filterDef) {
+      setColFilter(initialFilter ?? null);
+    }
     setPage(0);
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialFilter?.col, initialFilter?.val]);
+  }, [initialFilter?.col, initialFilter?.val, filterDefKey]);
 
   // Debounce search input
   function handleSearchChange(e: React.ChangeEvent<HTMLInputElement>) {
