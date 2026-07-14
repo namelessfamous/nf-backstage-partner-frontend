@@ -75,9 +75,10 @@ export function DashboardFooter({ partner }: { partner: PartnerConfig }) {
           </a>
           <a
             href={`mailto:${supportEmail}?subject=${requestSubject}&body=${requestBody}`}
-            className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--brand-primary)] px-4 py-2 text-sm font-semibold text-[var(--brand-on-primary)] transition hover:opacity-90"
+            className="inline-flex items-center gap-1.5 rounded-2xl bg-[var(--brand-primary)] px-4 py-2 text-sm font-semibold transition hover:opacity-90"
+            style={{ color: "var(--brand-on-primary)" }}
           >
-            <Send className="size-4" />
+            <Send className="size-4" style={{ color: "var(--brand-on-primary)" }} />
             Request
           </a>
         </div>
