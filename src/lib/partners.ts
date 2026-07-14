@@ -85,7 +85,7 @@ export const defaultPartnerConfig: PartnerConfig = {
   theme: {
     // Nameless Famous — namelessfamous.com brand (dark mode)
     dark: {
-      primary: "#DDDBDE", // light charcoal — reads on dark background
+      primary: "#c8f53c", // acid lime signature — CTA/active fills on dark (dark ink via onPrimary)
       secondary: "#22222a", // dark surface
       accent: "#019458", // NF green — dark mode accent
       surface: "#1a1a1f", // dark charcoal — card backgrounds
