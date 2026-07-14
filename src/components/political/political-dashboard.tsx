@@ -40,6 +40,21 @@ import { SegmentFilterDropdown } from "@/components/political/segment-filter-dro
 
 type GeoType = "county" | "ld" | "sd";
 type ElectionType = "primary" | "general";
+/**
+ * Voter-frequency threshold: minimum number of the last 4 cycles voted.
+ * "" = no threshold (All). "1" = 1+ (>0), "2" = 2+, "3" = 3+, "4" = 4/4.
+ * Backend stores PrimaryFrequency/GeneralFrequency as string digits '0'..'5';
+ * a JSONB gte on single-digit strings is order-equivalent to numeric gte.
+ */
+type FreqThreshold = "" | "1" | "2" | "3" | "4";
+
+const FREQ_THRESHOLD_OPTIONS: { value: FreqThreshold; label: string }[] = [
+  { value: "", label: "All" },
+  { value: "1", label: "1+ (\u003e0)" },
+  { value: "2", label: "2+" },
+  { value: "3", label: "3+" },
+  { value: "4", label: "4/4" },
+];
 
 interface AppliedSegment {
   id: string;
@@ -51,6 +66,10 @@ interface CurrentFilter {
   geoType: GeoType;
   geoValue: string;
   election: ElectionType;
+  /** Minimum primary-election frequency (of last 4 cycles). "" = no filter. */
+  primaryFreq: FreqThreshold;
+  /** Minimum general-election frequency (of last 4 cycles). "" = no filter. */
+  generalFreq: FreqThreshold;
   segment?: AppliedSegment | null;
 }
 
@@ -75,6 +94,14 @@ function buildEffectiveFilter(cf: CurrentFilter): FilterDef | null {
 
   if (cf.geoType === "county" && cf.geoValue) {
     rules.push({ key: "CountyName", cmp: "eq", value: cf.geoValue });
+  }
+
+  // Frequency thresholds → gte on the backend string-digit frequency columns.
+  if (cf.primaryFreq) {
+    rules.push({ key: "PrimaryFrequency", cmp: "gte", value: cf.primaryFreq });
+  }
+  if (cf.generalFreq) {
+    rules.push({ key: "GeneralFrequency", cmp: "gte", value: cf.generalFreq });
   }
 
   if (cf.segment?.filter) {
@@ -138,6 +165,8 @@ export function PoliticalDashboard({
     geoType: initialGeoType,
     geoValue: initialGeoValue,
     election: initialElection,
+    primaryFreq: "",
+    generalFreq: "",
     segment: null,
   });
 
@@ -203,6 +232,8 @@ export function PoliticalDashboard({
     currentFilter.geoType,
     currentFilter.geoValue,
     currentFilter.election,
+    currentFilter.primaryFreq,
+    currentFilter.generalFreq,
     // eslint-disable-next-line react-hooks/exhaustive-deps
     JSON.stringify(currentFilter.segment),
     activeStore?.id,
@@ -550,10 +581,10 @@ export function PoliticalDashboard({
               </div>
             </div>
 
-            {/* Frequency (election type) dropdown */}
+            {/* Election-type toggle (drives which frequency the widget displays) */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
-                Frequency
+                Election
               </span>
               <FilterSelect<ElectionType>
                 value={currentFilter.election}
@@ -563,6 +594,34 @@ export function PoliticalDashboard({
                 ]}
                 onSelect={(val) =>
                   setCurrentFilter((prev) => ({ ...prev, election: val }))
+                }
+              />
+            </div>
+
+            {/* Primary Frequency threshold filter */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                Primary Frequency
+              </span>
+              <FilterSelect<FreqThreshold>
+                value={currentFilter.primaryFreq}
+                options={FREQ_THRESHOLD_OPTIONS}
+                onSelect={(val) =>
+                  setCurrentFilter((prev) => ({ ...prev, primaryFreq: val }))
+                }
+              />
+            </div>
+
+            {/* General Frequency threshold filter */}
+            <div className="flex flex-col gap-1.5">
+              <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                General Frequency
+              </span>
+              <FilterSelect<FreqThreshold>
+                value={currentFilter.generalFreq}
+                options={FREQ_THRESHOLD_OPTIONS}
+                onSelect={(val) =>
+                  setCurrentFilter((prev) => ({ ...prev, generalFreq: val }))
                 }
               />
             </div>
