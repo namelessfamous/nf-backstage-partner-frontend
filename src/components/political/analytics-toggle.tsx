@@ -38,7 +38,7 @@ export function AnalyticsToggle({
               scroll={false}
               className={
                 active
-                  ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#fff)]"
+                  ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#111111)]"
                   : "rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
               }
             >
