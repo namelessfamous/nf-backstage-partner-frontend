@@ -10,6 +10,7 @@
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { StatsCard } from "@/components/ui/stats-card";
 import {
   HBars,
@@ -130,6 +131,8 @@ export function PoliticalDashboard({
   initialElection,
   activeStoreId,
 }: PoliticalDashboardProps) {
+  const router = useRouter();
+
   // ── Filter state ──────────────────────────────────────────────────────────
   const [currentFilter, setCurrentFilter] = useState<CurrentFilter>({
     geoType: initialGeoType,
@@ -396,29 +399,21 @@ export function PoliticalDashboard({
                 <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
                   Voter File
                 </span>
-                <div className="flex flex-wrap gap-1.5">
-                  {voterFiles.map((s) => {
-                    const active = s.id === activeStore?.id;
+                <FilterSelect<string>
+                  value={activeStore?.id ?? ""}
+                  minWidth="14rem"
+                  options={voterFiles.map((s) => ({
+                    value: s.id,
+                    label: `${s.name} (${s.rowCount.toLocaleString()})`,
+                  }))}
+                  onSelect={(id) => {
                     const params = new URLSearchParams({
                       ...baseParams,
-                      store: s.id,
+                      store: id,
                     });
-                    return (
-                      <Link
-                        key={s.id}
-                        href={`?${params.toString()}`}
-                        scroll={false}
-                        className={
-                          active
-                            ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#111111)]"
-                            : "rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
-                        }
-                      >
-                        {s.name} ({s.rowCount.toLocaleString()})
-                      </Link>
-                    );
-                  })}
-                </div>
+                    router.push(`?${params.toString()}`, { scroll: false });
+                  }}
+                />
               </div>
             )}
 
@@ -429,9 +424,13 @@ export function PoliticalDashboard({
                   Segments
                 </span>
                 <details className="group relative inline-block">
-                  <summary className="inline-flex cursor-pointer list-none items-center gap-1.5 rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)] [&::-webkit-details-marker]:hidden">
-                    Saved Segments ({storeSegments.length})
-                    <span className="transition group-open:rotate-90">›</span>
+                  <summary className="inline-flex min-w-[7.5rem] cursor-pointer list-none items-center justify-between gap-2 rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
+                    <span className="truncate">
+                      {currentFilter.segment
+                        ? currentFilter.segment.name
+                        : `Saved Segments (${storeSegments.length})`}
+                    </span>
+                    <span className="shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180">⌄</span>
                   </summary>
                   <div className="absolute z-30 mt-1 min-w-[13rem] rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg">
                     {currentFilter.segment && (
@@ -509,51 +508,36 @@ export function PoliticalDashboard({
                 Geography
               </span>
               <div className="flex items-center gap-2">
-                {/* GeoType selector */}
-                <div className="inline-flex rounded-full bg-[var(--brand-surface-strong)] p-0.5">
-                  {(
-                    [
-                      { value: "county", label: "County" },
-                      { value: "ld", label: "LD", disabled: true },
-                      { value: "sd", label: "SD", disabled: true },
-                    ] as { value: GeoType; label: string; disabled?: boolean }[]
-                  ).map((opt) => {
-                    if (opt.disabled) {
-                      return (
-                        <span
-                          key={opt.value}
-                          title="Coming soon — backend has no LD/SD column mapping yet"
-                          className="rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)]/40 cursor-not-allowed select-none"
-                        >
-                          {opt.label}
-                        </span>
-                      );
-                    }
-                    const active = currentFilter.geoType === opt.value;
-                    return (
-                      <button
-                        key={opt.value}
-                        type="button"
-                        onClick={() =>
-                          setCurrentFilter((prev) => ({
-                            ...prev,
-                            geoType: opt.value,
-                            geoValue: "",
-                          }))
-                        }
-                        className={
-                          active
-                            ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#111111)]"
-                            : "rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
-                        }
-                      >
-                        {opt.label}
-                      </button>
-                    );
-                  })}
-                </div>
+                {/* GeoType dropdown */}
+                <FilterSelect<GeoType>
+                  value={currentFilter.geoType}
+                  options={[
+                    { value: "county", label: "County" },
+                    {
+                      value: "ld",
+                      label: "Legislative District",
+                      disabled: true,
+                      disabledHint:
+                        "Coming soon — backend has no LD column mapping yet",
+                    },
+                    {
+                      value: "sd",
+                      label: "Senate District",
+                      disabled: true,
+                      disabledHint:
+                        "Coming soon — backend has no SD column mapping yet",
+                    },
+                  ]}
+                  onSelect={(val) =>
+                    setCurrentFilter((prev) => ({
+                      ...prev,
+                      geoType: val,
+                      geoValue: "",
+                    }))
+                  }
+                />
 
-                {/* County value selector */}
+                {/* County value dropdown */}
                 {currentFilter.geoType === "county" && countyOptions.length > 0 && (
                   <GeoValueSelect
                     options={countyOptions}
@@ -563,42 +547,24 @@ export function PoliticalDashboard({
                     }
                   />
                 )}
-
-                {/* LD/SD coming-soon note */}
-                {(currentFilter.geoType === "ld" || currentFilter.geoType === "sd") && (
-                  <span className="text-[0.7rem] text-[var(--brand-muted)] italic">
-                    Coming soon — no backend column mapping yet
-                  </span>
-                )}
               </div>
             </div>
 
-            {/* Election type toggle */}
+            {/* Frequency (election type) dropdown */}
             <div className="flex flex-col gap-1.5">
               <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
                 Frequency
               </span>
-              <div className="inline-flex rounded-full bg-[var(--brand-surface-strong)] p-0.5">
-                {(["primary", "general"] as ElectionType[]).map((opt) => {
-                  const active = currentFilter.election === opt;
-                  return (
-                    <button
-                      key={opt}
-                      type="button"
-                      onClick={() =>
-                        setCurrentFilter((prev) => ({ ...prev, election: opt }))
-                      }
-                      className={
-                        active
-                          ? "rounded-full bg-[var(--brand-primary)] px-3.5 py-1.5 text-xs font-semibold text-[var(--brand-on-primary,#111111)]"
-                          : "rounded-full px-3.5 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)]"
-                      }
-                    >
-                      {opt.charAt(0).toUpperCase() + opt.slice(1)}
-                    </button>
-                  );
-                })}
-              </div>
+              <FilterSelect<ElectionType>
+                value={currentFilter.election}
+                options={[
+                  { value: "primary", label: "Primary" },
+                  { value: "general", label: "General" },
+                ]}
+                onSelect={(val) =>
+                  setCurrentFilter((prev) => ({ ...prev, election: val }))
+                }
+              />
             </div>
 
             {/* Save as Segment (admin only, only when there is an active filter) */}
@@ -785,9 +751,9 @@ function GeoValueSelect({
   const label = current || "All counties";
   return (
     <details className="group relative inline-block">
-      <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-full bg-[var(--brand-surface-strong)] px-3 py-1.5 text-xs font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)] [&::-webkit-details-marker]:hidden">
-        {label}
-        <span className="transition group-open:rotate-90">›</span>
+      <summary className="inline-flex min-w-[7.5rem] cursor-pointer list-none items-center justify-between gap-2 rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
+        <span className="truncate">{label}</span>
+        <span className="shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180">⌄</span>
       </summary>
       <div className="absolute z-30 mt-1 max-h-60 min-w-[11rem] overflow-y-auto rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg">
         {/* Clear filter */}
@@ -814,6 +780,79 @@ function GeoValueSelect({
             {opt}
           </button>
         ))}
+      </div>
+    </details>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// FilterSelect — generic single-select dropdown filter (native <details>)
+// ---------------------------------------------------------------------------
+
+export interface FilterSelectOption<T extends string> {
+  value: T;
+  label: string;
+  /** Disabled options render greyed out with a tooltip and are not selectable. */
+  disabled?: boolean;
+  disabledHint?: string;
+}
+
+function FilterSelect<T extends string>({
+  value,
+  options,
+  onSelect,
+  minWidth = "9rem",
+}: {
+  value: T;
+  options: FilterSelectOption<T>[];
+  onSelect: (val: T) => void;
+  minWidth?: string;
+}) {
+  const current = options.find((o) => o.value === value);
+  const label = current?.label ?? String(value);
+  return (
+    <details className="group relative inline-block">
+      <summary className="inline-flex min-w-[7.5rem] cursor-pointer list-none items-center justify-between gap-2 rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
+        <span className="truncate">{label}</span>
+        <span className="shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180">⌄</span>
+      </summary>
+      <div
+        className="absolute z-30 mt-1 max-h-72 overflow-y-auto rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg"
+        style={{ minWidth }}
+      >
+        {options.map((opt) => {
+          if (opt.disabled) {
+            return (
+              <span
+                key={opt.value}
+                title={opt.disabledHint}
+                className="block cursor-not-allowed select-none rounded-lg px-2 py-1.5 text-xs text-[var(--brand-muted)]/40"
+              >
+                {opt.label}
+                <span className="ml-1 text-[0.6rem]">(soon)</span>
+              </span>
+            );
+          }
+          const active = opt.value === value;
+          return (
+            <button
+              key={opt.value}
+              type="button"
+              onClick={() => onSelect(opt.value)}
+              className={
+                "block w-full rounded-lg px-2 py-1.5 text-left text-xs transition hover:bg-[var(--brand-primary)]/10 " +
+                (active
+                  ? "font-semibold text-[var(--brand-primary)]"
+                  : "text-[var(--brand-foreground)]")
+              }
+            >
+              <span className="inline-flex items-center gap-1.5">
+                {active && <span>✓</span>}
+                {opt.label}
+              </span>
+            </button>
+          );
+        })}
       </div>
     </details>
   );
