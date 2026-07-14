@@ -43,7 +43,13 @@ function decodeJwtExp(token: string): number {
 
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
-  session: { strategy: "jwt" },
+  // Clamp the NextAuth session cookie lifetime so a stale session can't
+  // outlive the backstage access token it wraps. Default NextAuth maxAge is
+  // 30 days — far longer than the API token — which let a "logged-out" or
+  // lingering cookie keep resurrecting a session. 12h is a safe upper bound;
+  // the API token expiry + reauth flow enforce the real, shorter window.
+  session: { strategy: "jwt", maxAge: 60 * 60 * 12 },
+  jwt: { maxAge: 60 * 60 * 12 },
   pages: { signIn: "/auth/signin" },
   providers: [
     CredentialsProvider({

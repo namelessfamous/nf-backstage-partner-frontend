@@ -1,9 +1,35 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getToken } from "next-auth/jwt";
 import { SCOPE_COOKIE } from "@/lib/scope";
 
 const NO_CACHE = { "Cache-Control": "no-store" };
 
 const NF_ID_LOGOUT_URL = "https://id.namfam.co/logout";
+const BACKSTAGE_LOGOUT_URL = "https://a.namfam.co/api/v1/auth/logout/";
+
+/**
+ * Revoke the backstage access token embedded in the NextAuth session so the
+ * stateless JWT is dead server-side, not just dropped from the cookie. Without
+ * this, a copy of the token that survives (another tab, an in-flight request)
+ * stays valid until expiry even after the user "logs out". Best-effort.
+ */
+async function revokeBackstageAccess(access?: string) {
+  if (!access) return;
+  try {
+    await fetch(BACKSTAGE_LOGOUT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${access}`,
+      },
+      body: "{}",
+      signal: AbortSignal.timeout(3000),
+      cache: "no-store",
+    });
+  } catch {
+    /* best-effort — cookies still cleared below */
+  }
+}
 
 /**
  * GET /api/auth/logout — single, race-free sign-out for the partner frontend.
@@ -30,6 +56,21 @@ export async function GET(req: NextRequest) {
   // re-authenticate the user). The `logged_out` flag tells /auth/signin to
   // render a manual "Sign in" prompt instead of redirecting straight back into
   // the nf-id SSO round-trip.
+  // Revoke the backstage access token server-side before tearing down cookies.
+  try {
+    const token = await getToken({
+      req,
+      secret: process.env.NEXTAUTH_SECRET,
+    });
+    const access =
+      token && typeof token.accessToken === "string"
+        ? token.accessToken
+        : undefined;
+    await revokeBackstageAccess(access);
+  } catch {
+    /* best-effort revoke */
+  }
+
   const idLogout = new URL(NF_ID_LOGOUT_URL);
   idLogout.searchParams.set("return", `${origin}/auth/signin?logged_out=1`);
 

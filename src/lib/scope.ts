@@ -192,6 +192,13 @@ async function _getScopeContext(): Promise<ScopeContext> {
   } else if (active.type === "client") {
     activeClientIds = [active.id];
     activeClientSlug = active.slug;
+  } else {
+    // active.type === "all": ONLY admins may see the unfiltered global view.
+    // For any non-admin, "all" must fail CLOSED (empty), never fail open.
+    // Previously this left activeClientIds = null (no filter), which, when a
+    // non-admin's scope failed to resolve, rendered every partner's data
+    // (the security incident this guard fixes). null is only for real admins.
+    activeClientIds = isAdmin ? null : [];
   }
 
   return {
