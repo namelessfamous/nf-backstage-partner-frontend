@@ -41,6 +41,35 @@ function decodeJwtExp(token: string): number {
   }
 }
 
+const BACKSTAGE_API_URL =
+  process.env.NEXT_PUBLIC_API_URL || "https://a.namfam.co";
+
+// How often (ms) to re-validate the access token against the server-side
+// denylist. Logout on ANY nf-id portal denylists the token immediately; this
+// is how the partner session learns about it BEFORE the token's own exp. Kept
+// short so "log out everywhere" feels instant, but throttled so we don't hit
+// the API on every render.
+const DENYLIST_CHECK_INTERVAL_MS = 60_000;
+
+/**
+ * Returns true when the access token has been revoked server-side (logged out
+ * elsewhere). Fails OPEN (returns false) on network/timeout so a transient API
+ * blip can't mass-log-out every partner. A 401 with code "token_revoked" (or
+ * any 401) means the shared denylist rejected the token.
+ */
+async function isAccessTokenRevoked(access: string): Promise<boolean> {
+  try {
+    const res = await fetch(`${BACKSTAGE_API_URL}/api/v1/auth/me/`, {
+      headers: { Authorization: `Bearer ${access}` },
+      cache: "no-store",
+      signal: AbortSignal.timeout(4000),
+    });
+    return res.status === 401;
+  } catch {
+    return false; // fail open
+  }
+}
+
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   // Clamp the NextAuth session cookie lifetime so a stale session can't
@@ -91,7 +120,34 @@ export const authOptions: NextAuthOptions = {
         const access = (user as NfUser)._accessToken;
         token.accessToken = access;
         token.accessTokenExp = decodeJwtExp(access);
+        token.denylistCheckedAt = Date.now();
         if (user.image) token.picture = user.image;
+        return token;
+      }
+
+      // On subsequent reads: periodically check the shared server-side
+      // denylist so a logout from ANY nf-id portal kills THIS session too,
+      // even before the access token's own exp. Throttled to once per
+      // DENYLIST_CHECK_INTERVAL_MS to avoid an API call on every render.
+      const access =
+        typeof token.accessToken === "string" ? token.accessToken : undefined;
+      if (access) {
+        const lastChecked =
+          typeof token.denylistCheckedAt === "number"
+            ? token.denylistCheckedAt
+            : 0;
+        if (Date.now() - lastChecked > DENYLIST_CHECK_INTERVAL_MS) {
+          if (await isAccessTokenRevoked(access)) {
+            // Token revoked (logged out elsewhere). Drop the session-bearing
+            // claims so `session()` yields no accessToken and downstream
+            // guards treat the user as signed out.
+            delete token.accessToken;
+            delete token.accessTokenExp;
+            token.revoked = true;
+            return token;
+          }
+          token.denylistCheckedAt = Date.now();
+        }
       }
       return token;
     },
@@ -111,6 +167,11 @@ export const authOptions: NextAuthOptions = {
         session.accessTokenExpired =
           token.accessTokenExp > 0 &&
           token.accessTokenExp * 1000 < Date.now() + 30_000;
+      }
+      // Revoked server-side (logged out on another portal) → mark the session
+      // expired so route guards force a re-auth / sign-out.
+      if (token.revoked) {
+        session.accessTokenExpired = true;
       }
       return session;
     },

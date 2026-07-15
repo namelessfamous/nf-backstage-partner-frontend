@@ -20,5 +20,9 @@ declare module "next-auth/jwt" {
     accessToken?: string;
     /** Unix seconds — expiry of the embedded backstage access token. */
     accessTokenExp?: number;
+    /** Epoch ms of the last server-side denylist (revocation) check. */
+    denylistCheckedAt?: number;
+    /** True once the access token was found revoked (logged out elsewhere). */
+    revoked?: boolean;
   }
 }
