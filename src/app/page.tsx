@@ -1,6 +1,9 @@
 import { redirect } from "next/navigation";
+import { headers } from "next/headers";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
+import { isSessionUsable } from "@/lib/session-guard";
+import { buildReauthUrl } from "@/lib/reauth";
 
 /**
  * Root route.
@@ -19,8 +22,18 @@ import { authOptions } from "@/lib/auth";
 export default async function Home() {
   const session = await getServerSession(authOptions);
 
-  if (session) {
+  if (isSessionUsable(session)) {
     redirect("/dashboard");
+  }
+
+  // A present-but-stale local cookie (expired access token / killed SSO
+  // session) must NOT sail into /dashboard. Re-enter nf-id SSO: it re-mints
+  // silently if nf-id is still logged in, or lands on login/passkey if not.
+  if (session) {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "partner.namfam.co";
+    const proto = h.get("x-forwarded-proto") ?? "https";
+    redirect(buildReauthUrl(`${proto}://${host}`, "/dashboard"));
   }
 
   redirect("/auth/signin");

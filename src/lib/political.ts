@@ -171,22 +171,22 @@ export function clientIsPolitical(client: Client): boolean {
 }
 
 /**
- * True when the ACTIVE scope includes at least one political/public-affairs
- * client. Gates the Political nav link + route.
+ * True ONLY when the ACTIVE scope is a single political/public-affairs client.
+ * Gates the Political nav link + route AND the dashboard political summary.
+ *
+ * Per product rule (2026-07-15): no political summary exists unless an
+ * individual client scope of political type is selected. A "partner" or
+ * "all" scope — even one that reaches political clients — must NOT surface any
+ * political summary or nav. The user must drill into one political client.
  */
 export function scopeHasPoliticalNiche(ctx: ScopeContext): boolean {
   const { active, clients } = ctx;
 
-  let relevant: Client[];
-  if (active.type === "client") {
-    relevant = clients.filter((c) => c.id === active.id);
-  } else if (active.type === "partner") {
-    relevant = clients.filter((c) => c.partner === active.id);
-  } else {
-    relevant = clients;
-  }
+  // Only an individual client scope qualifies. Partner / all → never political.
+  if (active.type !== "client") return false;
 
-  return relevant.some(clientIsPolitical);
+  const client = clients.find((c) => c.id === active.id);
+  return client ? clientIsPolitical(client) : false;
 }
 
 /**

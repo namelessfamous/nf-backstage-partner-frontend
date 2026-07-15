@@ -9,6 +9,7 @@ import { buildNavData } from "@/lib/nav-data";
 import { scopeHasPoliticalNiche } from "@/lib/political";
 import { SessionExpiredError } from "@/lib/api";
 import { buildReauthUrl } from "@/lib/reauth";
+import { isSessionUsable } from "@/lib/session-guard";
 
 /**
  * Convert a lapsed-session throw into a redirect to nf-id re-auth. Handles the
@@ -44,6 +45,12 @@ export default async function DashboardLayout({
     if (err instanceof SessionExpiredError) return reauthRedirect();
     throw err;
   }
+
+  // Guard against a lingering local cookie whose access token is dead (or
+  // whose central nf-id SSO session was killed elsewhere). Without this, the
+  // 12h partner cookie renders a full dashboard against a stale token that
+  // only 401s later. Bounce through nf-id SSO instead.
+  if (!isSessionUsable(session)) return reauthRedirect();
 
   // Resource lists for the sidebar searchable flyouts, scoped to the active
   // partner/client. Failures degrade to empty lists (flyout shows "none in scope").

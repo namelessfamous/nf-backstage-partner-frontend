@@ -113,19 +113,29 @@ async function _getScopeContext(): Promise<ScopeContext> {
   const isAdmin = role === "super_admin" || role === "admin";
   const isClientOnly = role === "client";
 
-  // If no cookie, compute a sensible default:
-  //   1. If the hostname maps to a real backstage partner → that partner
-  //   2. Non-admin with exactly 1 partner → that partner
-  //   3. Non-admin with exactly 1 client (no partners) → that client
-  //   4. Otherwise → "all"
+  // Default scope when there is no explicit cookie (2026-07-15 rule):
+  //   Access is uniform — any user can have access to any set of clients.
+  //   - Admin: hostname partner match wins, else "all" (global view).
+  //   - Everyone else (client role or partner-scoped): NO "all" default.
+  //       * exactly 1 accessible client       → that client
+  //       * multiple accessible clients        → the FIRST client returned by
+  //         the API (index 0). The selector lets them switch; "all" is not a
+  //         resting state for non-admins (it fails closed — see below).
+  //       * a real backstage partner match on the hostname still wins for a
+  //         partner-scoped landing when it exists.
   let effectiveParsed = parsed;
   if (!rawCookie) {
     const matchedPartner = partners.find((p) => p.slug === hostnamePartner.key);
-    if (matchedPartner) {
+    if (isAdmin) {
+      if (matchedPartner) {
+        effectiveParsed = { type: "partner", slug: matchedPartner.slug };
+      }
+      // else leave as { type: "all" } — admins get the global view.
+    } else if (matchedPartner) {
       effectiveParsed = { type: "partner", slug: matchedPartner.slug };
-    } else if (!isAdmin && partners.length === 1) {
-      effectiveParsed = { type: "partner", slug: partners[0].slug };
-    } else if (!isAdmin && partners.length === 0 && clients.length === 1) {
+    } else if (clients.length >= 1) {
+      // Client-role / non-admin users default to the FIRST client the API
+      // reports they can access. Simple, deterministic, no "all" landing.
       effectiveParsed = { type: "client", slug: clients[0].slug };
     }
   }
@@ -171,17 +181,19 @@ async function _getScopeContext(): Promise<ScopeContext> {
   const singlePartner =
     !isAdmin && partners.length === 1 ? partners[0] : null;
 
-  // Show selector if admin OR if there are multiple scopes to switch between.
-  // For a single-partner user, show it whenever that partner has >1 client
-  // (so they can drill into an individual client) — the partner itself is the
-  // "all" default, so a lone client wouldn't offer a meaningful choice.
-  // Client-only users are pinned to their single client scope — no switching.
-  const totalScopes = partners.length + clients.length;
-  const showSelector = isClientOnly
-    ? false
-    : singlePartner
-      ? clients.filter((c) => c.partner === singlePartner.id).length > 1
-      : isAdmin || totalScopes > 1;
+  // Show the client/scope selector whenever the user can reach more than one
+  // client (2026-07-15 rule: if a user has access to multiple clients, the
+  // scope must reflect that — they get a selector). Admins always get it.
+  //   - single-partner non-admin: show when that partner has >1 client.
+  //   - everyone else (incl. client role): show when they can reach >1 client.
+  // A user with exactly one accessible client is pinned to it — nothing to
+  // switch — so the selector is hidden.
+  const clientsForSelector = singlePartner
+    ? clients.filter((c) => c.partner === singlePartner.id)
+    : clients;
+  const showSelector = isAdmin
+    ? true
+    : clientsForSelector.length > 1;
 
   // Pre-compute convenience fields for pages.
   let activeClientIds: string[] | null = null;
