@@ -46,10 +46,11 @@ const BACKSTAGE_API_URL =
 
 // How often (ms) to re-validate the access token against the server-side
 // denylist. Logout on ANY nf-id portal denylists the token immediately; this
-// is how the partner session learns about it BEFORE the token's own exp. Kept
-// short so "log out everywhere" feels instant, but throttled so we don't hit
-// the API on every render.
-const DENYLIST_CHECK_INTERVAL_MS = 60_000;
+// is how the partner session learns about it BEFORE the token's own exp.
+// 0 = check on EVERY session read so "log out everywhere" is INSTANT (Keys,
+// 2026-07-15). Costs one lightweight /auth/me/ call per navigation; fail-open
+// on network error keeps a blip from mass-logging-out.
+const DENYLIST_CHECK_INTERVAL_MS = 0;
 
 /**
  * Returns true when the access token has been revoked server-side (logged out
