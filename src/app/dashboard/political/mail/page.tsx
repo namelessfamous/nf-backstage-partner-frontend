@@ -5,6 +5,7 @@ import { apiList } from "@/lib/api";
 import { parseMailPieceData, isMailPiece, fmtCurrency } from "@/lib/mail-piece";
 import type { BackstageDeliverable, Project } from "@/types/api";
 import { MailGrid, type MailGridGroup } from "@/components/political/mail-grid";
+import { Mail, Receipt, DollarSign, CheckSquare } from "lucide-react";
 import { StatsCard } from "@/components/ui/stats-card";
 import {
   PoliticalModuleHeader,
@@ -102,19 +103,22 @@ export default async function PoliticalMailPage() {
 
       {/* Stats */}
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4 sm:gap-4">
-        <StatsCard label="Mail Pieces" value={totalPieces} />
+        <StatsCard label="Mail Pieces" value={totalPieces} icon={Mail} />
         <StatsCard
           label="Total Units"
           value={totalUnits > 0 ? totalUnits.toLocaleString() : "—"}
+          icon={Receipt}
         />
         <StatsCard
           label="Total Cost"
           value={totalCost > 0 ? fmtCurrency(totalCost) : "—"}
+          icon={DollarSign}
         />
         <StatsCard
           label="Invoiced"
           value={`${invoicedCount} / ${totalPieces}`}
           sub={totalPieces > 0 ? `${Math.round((invoicedCount / totalPieces) * 100)}%` : undefined}
+          icon={CheckSquare}
         />
       </div>
 

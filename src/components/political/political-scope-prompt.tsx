@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ScopeSwitchOverlay } from "@/components/dashboard/scope-switch-overlay";
+import { Landmark, ChevronRight, Building2 } from "lucide-react";
 
 type PoliticalClientOption = {
   slug: string;
@@ -42,11 +43,15 @@ export function PoliticalScopePrompt({
       {isPending && pendingName && <ScopeSwitchOverlay scopeName={pendingName} />}
 
       <div>
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--brand-foreground)] sm:text-4xl">
+        <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-widest text-[var(--brand-muted)]">
+          <Landmark className="h-3 w-3" aria-hidden="true" />
           Political
+        </p>
+        <h1 className="mt-0.5 text-3xl font-bold tracking-tight text-[var(--brand-foreground)] sm:text-4xl">
+          Select Campaign
         </h1>
-        <p className="mt-1.5 text-xs font-medium uppercase tracking-wider text-[var(--brand-muted)]">
-          Select a campaign to view
+        <p className="mt-1 text-xs font-medium uppercase tracking-wider text-[var(--brand-muted)]">
+          Choose a scope to load voter-file analytics
         </p>
       </div>
 
@@ -67,8 +72,12 @@ export function PoliticalScopePrompt({
                 isPending ? "cursor-wait opacity-60" : "cursor-pointer"
               }`}
             >
-              <span className="text-base font-semibold text-[var(--brand-foreground)] group-hover:text-[var(--brand-primary)]">
-                {c.name}
+              <span className="flex w-full items-center justify-between gap-2">
+                <span className="inline-flex items-center gap-2 text-base font-semibold text-[var(--brand-foreground)] group-hover:text-[var(--brand-primary)]">
+                  <Building2 className="h-4 w-4 shrink-0 text-[var(--brand-muted)] group-hover:text-[var(--brand-primary)]" aria-hidden="true" />
+                  {c.name}
+                </span>
+                <ChevronRight className="h-4 w-4 shrink-0 text-[var(--brand-muted)] opacity-0 transition group-hover:opacity-100" aria-hidden="true" />
               </span>
               {c.partnerName && (
                 <span className="text-[11px] uppercase tracking-wide text-[var(--brand-muted)]">

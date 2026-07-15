@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Filter, ChevronRight } from "lucide-react";
 import type { PoliticalListRow, PoliticalView } from "@/lib/political-types";
 import { POLITICAL_VIEWS, POLITICAL_VIEW_META } from "@/lib/political-types";
 
@@ -54,8 +55,9 @@ export function SegmentFilterDropdown({
   return (
     <details className="group relative inline-block">
       <summary className="inline-flex cursor-pointer list-none items-center gap-1 rounded-full bg-[var(--brand-surface)] px-2.5 py-1 text-[0.7rem] font-medium text-[var(--brand-muted)] transition hover:text-[var(--brand-foreground)] [&::-webkit-details-marker]:hidden">
+        <Filter className="h-3 w-3" aria-hidden="true" />
         Filter
-        <span className="transition group-open:rotate-90">›</span>
+        <ChevronRight className="h-3 w-3 transition group-open:rotate-90" aria-hidden="true" />
       </summary>
       <div
         className={

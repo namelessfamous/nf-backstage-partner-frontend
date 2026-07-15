@@ -6,6 +6,7 @@ import {
   scopeHasPoliticalNiche,
   POLITICAL_VIEW_META,
 } from "@/lib/political";
+import { Phone, Users, List } from "lucide-react";
 import { StatsCard } from "@/components/ui/stats-card";
 import { PoliticalListView } from "@/components/political/political-list-view";
 import {
@@ -44,16 +45,18 @@ export default async function PoliticalCallPage() {
 
       {/* Stats row — Change 1: voter file total from store, not segment sum */}
       <div className="grid grid-cols-3 gap-2 sm:gap-4">
-        <StatsCard label="Call Lists" value={lists.length} />
+        <StatsCard label="Call Lists" value={lists.length} icon={List} />
         <StatsCard
           label="Voter File Records"
           value={voterFileTotal.toLocaleString()}
           sub="master voter file"
+          icon={Users}
         />
         <StatsCard
           label="Largest List"
           value={largestList > 0 ? largestList.toLocaleString() : "—"}
           sub="records"
+          icon={Phone}
         />
       </div>
 

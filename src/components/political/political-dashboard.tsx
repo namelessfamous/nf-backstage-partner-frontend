@@ -11,6 +11,29 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import {
+  Users,
+  Flag,
+  Landmark,
+  Vote,
+  MapPin,
+  Filter,
+  Bookmark,
+  Download,
+  Footprints,
+  Phone,
+  HandCoins,
+  Mail,
+  BarChart3,
+  PieChart,
+  ChevronDown,
+  Shield,
+  Tag,
+  Building2,
+  ArrowRight,
+  ListFilter,
+  Activity,
+} from "lucide-react";
 import { StatsCard } from "@/components/ui/stats-card";
 import {
   HBars,
@@ -343,16 +366,18 @@ export function PoliticalDashboard({
 
   return (
     <div className="space-y-8">
-      {/* ── 1. TITLE BLOCK ─────────────────────────────────────────────── */}
+      {/* ── 1. TITLE BLOCK ─────────────────────────────────────────────────────────── */}
       <div>
-        <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-[var(--brand-muted)]">
+        <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-widest text-[var(--brand-muted)]">
+          <Landmark className="h-3 w-3" aria-hidden="true" />
           Political
         </p>
         <h1 className="mt-0.5 text-3xl font-semibold text-[var(--brand-foreground)] sm:text-4xl">
           Dashboard
         </h1>
         {clientSubtitle && (
-          <p className="mt-1 text-sm text-[var(--brand-muted)]">
+          <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-[var(--brand-muted)]">
+            <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
             Client — {clientSubtitle}
           </p>
         )}
@@ -360,7 +385,8 @@ export function PoliticalDashboard({
 
       {/* ── 2. LIST BUILDING nav cards (moved to top) ──────────────────── */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+        <h2 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+          <Users className="h-4 w-4" aria-hidden="true" />
           List Building
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -373,6 +399,10 @@ export function PoliticalDashboard({
                 href={VIEW_HREFS[view]}
                 className="group block rounded-3xl border border-black/5 bg-[var(--brand-surface-strong)]/40 p-5 transition hover:bg-[var(--brand-surface-strong)]/70 hover:shadow-sm"
               >
+                {/* View icon */}
+                {view === "walk" && <Footprints className="mb-3 h-6 w-6 text-[var(--brand-muted)] transition group-hover:text-[var(--brand-primary)]" aria-hidden="true" />}
+                {view === "call" && <Phone className="mb-3 h-6 w-6 text-[var(--brand-muted)] transition group-hover:text-[var(--brand-primary)]" aria-hidden="true" />}
+                {view === "fundraising" && <HandCoins className="mb-3 h-6 w-6 text-[var(--brand-muted)] transition group-hover:text-[var(--brand-primary)]" aria-hidden="true" />}
                 <p className="text-base font-semibold text-[var(--brand-foreground)] group-hover:text-[var(--brand-primary)]">
                   {meta.label}
                 </p>
@@ -383,8 +413,9 @@ export function PoliticalDashboard({
                   <span className="text-2xl font-bold tabular-nums text-[var(--brand-foreground)]">
                     {lists.length}
                   </span>
-                  <span className="text-xs text-[var(--brand-muted)]">
+                  <span className="inline-flex items-center gap-1 text-xs text-[var(--brand-muted)]">
                     {lists.length === 1 ? "list" : "lists"}
+                    <ArrowRight className="h-3 w-3 opacity-0 transition group-hover:opacity-100" aria-hidden="true" />
                   </span>
                 </div>
               </Link>
@@ -395,7 +426,8 @@ export function PoliticalDashboard({
 
       {/* ── 3. CAMPAIGN OPERATIONS (moved to top) ──────────────────────── */}
       <div>
-        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+        <h2 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+          <Activity className="h-4 w-4" aria-hidden="true" />
           Campaign Operations
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
@@ -403,6 +435,7 @@ export function PoliticalDashboard({
             href={VIEW_HREFS.mail}
             className="group block rounded-3xl border border-black/5 bg-[var(--brand-surface-strong)]/40 p-5 transition hover:bg-[var(--brand-surface-strong)]/70 hover:shadow-sm"
           >
+            <Mail className="mb-3 h-6 w-6 text-[var(--brand-muted)] transition group-hover:text-[var(--brand-primary)]" aria-hidden="true" />
             <p className="text-base font-semibold text-[var(--brand-foreground)] group-hover:text-[var(--brand-primary)]">
               Direct Mail
             </p>
@@ -414,7 +447,10 @@ export function PoliticalDashboard({
               <span className="text-2xl font-bold tabular-nums text-[var(--brand-foreground)]">
                 →
               </span>
-              <span className="text-xs text-[var(--brand-muted)]">mail grid</span>
+              <span className="inline-flex items-center gap-1 text-xs text-[var(--brand-muted)]">
+                mail grid
+                <ArrowRight className="h-3 w-3 opacity-0 transition group-hover:opacity-100" aria-hidden="true" />
+              </span>
             </div>
           </Link>
         </div>
@@ -427,7 +463,8 @@ export function PoliticalDashboard({
             {/* Voter file picker (only when multiple files) */}
             {voterFiles.length > 1 && (
               <div className="flex flex-col gap-1.5">
-                <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                <span className="inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                  <Users className="h-3 w-3" aria-hidden="true" />
                   Voter File
                 </span>
                 <FilterSelect<string>
@@ -451,7 +488,8 @@ export function PoliticalDashboard({
             {/* Saved segments dropdown */}
             {segmentsByView.length > 0 && (
               <div className="flex flex-col gap-1.5">
-                <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                <span className="inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                  <Bookmark className="h-3 w-3" aria-hidden="true" />
                   Segments
                 </span>
                 <details className="group relative inline-block">
@@ -461,7 +499,7 @@ export function PoliticalDashboard({
                         ? currentFilter.segment.name
                         : `Saved Segments (${storeSegments.length})`}
                     </span>
-                    <span className="shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180">⌄</span>
+                    <ChevronDown className="h-3 w-3 shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180" aria-hidden="true" />
                   </summary>
                   <div className="absolute z-30 mt-1 min-w-[13rem] rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg">
                     {currentFilter.segment && (
@@ -535,7 +573,8 @@ export function PoliticalDashboard({
 
             {/* Geography filter */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+              <span className="inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                <MapPin className="h-3 w-3" aria-hidden="true" />
                 Geography
               </span>
               <div className="flex items-center gap-2">
@@ -583,7 +622,8 @@ export function PoliticalDashboard({
 
             {/* Election-type toggle (drives which frequency the widget displays) */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+              <span className="inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                <Vote className="h-3 w-3" aria-hidden="true" />
                 Election
               </span>
               <FilterSelect<ElectionType>
@@ -600,7 +640,8 @@ export function PoliticalDashboard({
 
             {/* Primary Frequency threshold filter */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+              <span className="inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                <BarChart3 className="h-3 w-3" aria-hidden="true" />
                 Primary Frequency
               </span>
               <FilterSelect<FreqThreshold>
@@ -614,7 +655,8 @@ export function PoliticalDashboard({
 
             {/* General Frequency threshold filter */}
             <div className="flex flex-col gap-1.5">
-              <span className="text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+              <span className="inline-flex items-center gap-1 text-[0.65rem] font-medium uppercase tracking-wide text-[var(--brand-muted)]">
+                <BarChart3 className="h-3 w-3" aria-hidden="true" />
                 General Frequency
               </span>
               <FilterSelect<FreqThreshold>
@@ -638,6 +680,7 @@ export function PoliticalDashboard({
                   onClick={handleSaveSegment}
                   className="inline-flex items-center gap-1.5 rounded-full border border-[var(--brand-primary)]/30 bg-[var(--brand-primary)]/5 px-3.5 py-1.5 text-xs font-medium text-[var(--brand-primary)] transition hover:bg-[var(--brand-primary)]/10 disabled:opacity-50"
                 >
+                  <Bookmark className="h-3.5 w-3.5" aria-hidden="true" />
                   {savingSegment ? "Saving…" : "Save as Segment"}
                 </button>
               </div>
@@ -652,6 +695,7 @@ export function PoliticalDashboard({
           {/* Total Count — reflects effective filter via filtered analytics */}
           <StatsCard
             label="Total Voters"
+            icon={Users}
             value={totalVoters.toLocaleString()}
             sub={
               currentFilter.geoValue && currentFilter.geoType === "county"
@@ -665,6 +709,7 @@ export function PoliticalDashboard({
           {/* Republican */}
           <StatsCard
             label="Republican"
+            icon={Flag}
             value={totalOfficial ? `${repShare.toFixed(1)}%` : "—"}
             sub={
               totalOfficial
@@ -676,6 +721,7 @@ export function PoliticalDashboard({
           {/* Democrat */}
           <StatsCard
             label="Democrat"
+            icon={Shield}
             value={totalOfficial ? `${demShare.toFixed(1)}%` : "—"}
             sub={
               totalOfficial
@@ -687,6 +733,7 @@ export function PoliticalDashboard({
           {/* Other */}
           <StatsCard
             label="Other / Unaffiliated"
+            icon={Tag}
             value={totalOfficial ? `${otherShare.toFixed(1)}%` : "—"}
             sub={
               totalOfficial
@@ -704,6 +751,7 @@ export function PoliticalDashboard({
             <WidgetCard
               title="Official Party"
               subtitle="Registered party of record"
+              icon={PieChart}
             >
               <HBars
                 data={analytics.official_party}
@@ -715,6 +763,7 @@ export function PoliticalDashboard({
             <WidgetCard
               title="Voter Frequency"
               subtitle={`${currentFilter.election === "primary" ? "Primary" : "General"} elections voted (of last 4 cycles)`}
+              icon={BarChart3}
             >
               <HBars
                 data={analytics.frequency}
@@ -731,6 +780,7 @@ export function PoliticalDashboard({
             <WidgetCard
               title="By Tags"
               subtitle="DataStore record tags — coming soon"
+              icon={Tag}
             >
               <div className="flex h-full flex-col items-center justify-center gap-2 py-6">
                 <span className="text-2xl">🏷️</span>
@@ -767,7 +817,8 @@ export function PoliticalDashboard({
       {/* ── 7. VOTER LIST ──────────────────────────────────────────────── */}
       {activeStore ? (
         <section>
-          <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+          <h2 className="mb-3 inline-flex items-center gap-2 text-sm font-semibold uppercase tracking-wide text-[var(--brand-muted)]">
+            <Users className="h-4 w-4" aria-hidden="true" />
             Voter File
             {currentFilter.geoValue && currentFilter.geoType === "county"
               ? ` — ${currentFilter.geoValue} County`
@@ -812,7 +863,7 @@ function GeoValueSelect({
     <details className="group relative inline-block">
       <summary className="inline-flex min-w-[7.5rem] cursor-pointer list-none items-center justify-between gap-2 rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
         <span className="truncate">{label}</span>
-        <span className="shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180">⌄</span>
+        <ChevronDown className="h-3 w-3 shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180" aria-hidden="true" />
       </summary>
       <div className="absolute z-30 mt-1 max-h-60 min-w-[11rem] overflow-y-auto rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg">
         {/* Clear filter */}
@@ -873,7 +924,7 @@ function FilterSelect<T extends string>({
     <details className="group relative inline-block">
       <summary className="inline-flex min-w-[7.5rem] cursor-pointer list-none items-center justify-between gap-2 rounded-full bg-[var(--brand-surface-strong)] px-3.5 py-1.5 text-xs font-medium text-[var(--brand-foreground)] transition hover:text-[var(--brand-primary)] [&::-webkit-details-marker]:hidden">
         <span className="truncate">{label}</span>
-        <span className="shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180">⌄</span>
+        <ChevronDown className="h-3 w-3 shrink-0 text-[var(--brand-muted)] transition group-open:rotate-180" aria-hidden="true" />
       </summary>
       <div
         className="absolute z-30 mt-1 max-h-72 overflow-y-auto rounded-2xl border border-black/10 bg-[var(--brand-surface)] p-1.5 shadow-lg"

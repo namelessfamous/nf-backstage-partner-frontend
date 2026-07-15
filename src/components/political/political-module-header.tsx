@@ -1,3 +1,5 @@
+import { Landmark, Building2 } from "lucide-react";
+
 /**
  * Shared title block for Political submodule pages (mail, call, walk,
  * fundraising). Mirrors the exact eyebrow / title / subtitle pattern used on
@@ -21,14 +23,16 @@ export function PoliticalModuleHeader({
 }) {
   return (
     <div>
-      <p className="text-[0.65rem] font-semibold uppercase tracking-widest text-[var(--brand-muted)]">
+      <p className="inline-flex items-center gap-1.5 text-[0.65rem] font-semibold uppercase tracking-widest text-[var(--brand-muted)]">
+        <Landmark className="h-3 w-3" aria-hidden="true" />
         Political
       </p>
       <h1 className="mt-0.5 text-3xl font-semibold text-[var(--brand-foreground)] sm:text-4xl">
         {title}
       </h1>
       {clientSubtitle && (
-        <p className="mt-1 text-sm text-[var(--brand-muted)]">
+        <p className="mt-1 inline-flex items-center gap-1.5 text-sm text-[var(--brand-muted)]">
+          <Building2 className="h-3.5 w-3.5" aria-hidden="true" />
           Client — {clientSubtitle}
         </p>
       )}

@@ -1,6 +1,18 @@
 "use client";
 
 import React, { useState, useCallback, useMemo, useTransition } from "react";
+import {
+  Mail,
+  Package,
+  DollarSign,
+  Calendar,
+  Printer,
+  CheckSquare,
+  Trash2,
+  Plus,
+  Receipt,
+  Activity,
+} from "lucide-react";
 import type { BackstageDeliverable } from "@/types/api";
 import {
   type MailPieceData,
@@ -363,7 +375,7 @@ function MailRow({ row, readOnly, onDelete, onPatch }: MailRowProps) {
             className="rounded p-1 text-[var(--brand-muted)] hover:bg-red-100 hover:text-red-700 transition-colors"
             title="Delete row"
           >
-            ✕
+            <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
           </button>
         </td>
       )}
@@ -420,7 +432,8 @@ function AddRow({ projectId, clientId: _clientId, onAdded }: AddRowProps) {
         onClick={() => setOpen(true)}
         className="mt-2 flex items-center gap-1.5 rounded-full border border-dashed border-[var(--brand-primary)]/30 px-3 py-1.5 text-xs font-medium text-[var(--brand-primary)] hover:border-[var(--brand-accent)] hover:text-[var(--brand-accent)] transition-colors"
       >
-        + Add Mail Piece
+        <Plus className="h-3.5 w-3.5" aria-hidden="true" />
+        Add Mail Piece
       </button>
     );
   }
@@ -512,17 +525,28 @@ function GroupSection({ group, readOnly }: GroupSectionProps) {
       {/* Group header */}
       <div className="flex items-center justify-between gap-4 bg-[var(--brand-surface-strong)] px-5 py-3 border-b border-black/5">
         <div>
-          <h2 className="text-sm font-bold text-[var(--brand-foreground)] uppercase tracking-wide">
+          <h2 className="inline-flex items-center gap-2 text-sm font-bold text-[var(--brand-foreground)] uppercase tracking-wide">
+            <Mail className="h-4 w-4 text-[var(--brand-muted)]" aria-hidden="true" />
             {group.projectName}
           </h2>
-          <p className="text-[0.65rem] text-[var(--brand-muted)] mt-0.5 uppercase tracking-wider">
+          <p className="text-[0.65rem] text-[var(--brand-muted)] mt-0.5 inline-flex items-center gap-1 uppercase tracking-wider">
+            <Activity className="h-3 w-3" aria-hidden="true" />
             Election Cycle · {group.projectStatus}
           </p>
         </div>
         <div className="flex items-center gap-5 text-xs text-[var(--brand-muted)]">
-          <span>{rows.length} {rows.length === 1 ? "piece" : "pieces"}</span>
-          <span className="tabular-nums">{fmtNumber(totalUnits)} units</span>
-          <span className="font-semibold text-[var(--brand-accent)] tabular-nums">{fmtCurrency(totalCost)}</span>
+          <span className="inline-flex items-center gap-1">
+            <Package className="h-3.5 w-3.5" aria-hidden="true" />
+            {rows.length} {rows.length === 1 ? "piece" : "pieces"}
+          </span>
+          <span className="inline-flex items-center gap-1 tabular-nums">
+            <Receipt className="h-3.5 w-3.5" aria-hidden="true" />
+            {fmtNumber(totalUnits)} units
+          </span>
+          <span className="inline-flex items-center gap-1 font-semibold text-[var(--brand-accent)] tabular-nums">
+            <DollarSign className="h-3.5 w-3.5" aria-hidden="true" />
+            {fmtCurrency(totalCost)}
+          </span>
         </div>
       </div>
 
@@ -534,15 +558,15 @@ function GroupSection({ group, readOnly }: GroupSectionProps) {
               <th className="px-3 py-2">#</th>
               <th className="px-3 py-2">Title</th>
               <th className="px-3 py-2">Universe</th>
-              <th className="px-3 py-2 text-right">Units</th>
+              <th className="px-3 py-2 text-right"><span className="inline-flex items-center justify-end gap-1"><Receipt className="h-3 w-3" aria-hidden="true" />Units</span></th>
               <th className="px-3 py-2">Size</th>
-              <th className="px-3 py-2 text-right">Unit Cost</th>
-              <th className="px-3 py-2 text-right">Total Cost</th>
-              <th className="px-3 py-2">Drop Date</th>
+              <th className="px-3 py-2 text-right"><span className="inline-flex items-center justify-end gap-1"><DollarSign className="h-3 w-3" aria-hidden="true" />Unit Cost</span></th>
+              <th className="px-3 py-2 text-right"><span className="inline-flex items-center justify-end gap-1"><DollarSign className="h-3 w-3" aria-hidden="true" />Total Cost</span></th>
+              <th className="px-3 py-2"><span className="inline-flex items-center gap-1"><Calendar className="h-3 w-3" aria-hidden="true" />Drop Date</span></th>
               <th className="px-3 py-2">Designer</th>
               <th className="px-3 py-2">Status</th>
-              <th className="px-3 py-2">Print Status</th>
-              <th className="px-3 py-2 text-center">Inv.</th>
+              <th className="px-3 py-2"><span className="inline-flex items-center gap-1"><Printer className="h-3 w-3" aria-hidden="true" />Print Status</span></th>
+              <th className="px-3 py-2 text-center"><CheckSquare className="mx-auto h-3 w-3" aria-hidden="true" /></th>
               <th className="px-3 py-2">Order Label</th>
               {!readOnly && <th className="px-3 py-2"></th>}
             </tr>

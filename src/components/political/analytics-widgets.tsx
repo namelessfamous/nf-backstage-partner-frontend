@@ -1,3 +1,5 @@
+import React from "react";
+import type { LucideIcon } from "lucide-react";
 import type { VoterAnalyticsBar } from "@/lib/political-types";
 
 // ── Palette ─────────────────────────────────────────────────────────────────
@@ -130,16 +132,27 @@ export function HBars({
 export function WidgetCard({
   title,
   subtitle,
+  icon: Icon,
   children,
 }: {
   title: string;
   subtitle?: string;
+  /** Optional Lucide icon rendered beside the title. */
+  icon?: LucideIcon;
   children: React.ReactNode;
 }) {
   return (
     <section className="rounded-3xl bg-[var(--brand-surface-strong)] p-5">
       <div className="mb-3">
-        <h3 className="text-sm font-semibold text-[var(--brand-foreground)]">{title}</h3>
+        <div className="flex items-center gap-2">
+          {Icon && (
+            <Icon
+              className="h-4 w-4 shrink-0 text-[var(--brand-muted)]"
+              aria-hidden="true"
+            />
+          )}
+          <h3 className="text-sm font-semibold text-[var(--brand-foreground)]">{title}</h3>
+        </div>
         {subtitle && (
           <p className="mt-0.5 text-xs text-[var(--brand-muted)]">{subtitle}</p>
         )}
