@@ -199,6 +199,12 @@ export interface PoliticalDashboardProps {
    * filter; viewers stack additional filtering on top to drill down within it.
    */
   assignedFilter?: AssignedFilterDef | null;
+  /**
+   * The default effective filter the server used to pre-compute
+   * initialAnalytics (freq floor + assigned base). Passed for parity so the
+   * client's seeded effective filter matches the SSR data on first paint.
+   */
+  initialEffectiveFilter?: AssignedFilterDef | null;
   /** Store id to use for store-switching links. */
   activeStoreId: string | null;
 }
@@ -216,8 +222,13 @@ export function PoliticalDashboard({
   initialGeoValue,
   initialElection,
   assignedFilter = null,
+  initialEffectiveFilter = null,
   activeStoreId,
 }: PoliticalDashboardProps) {
+  // initialEffectiveFilter is the SSR-applied default filter; the client seeds
+  // the same predicate via defaultFreqForElection + assignedFilter below, so
+  // first-paint analytics (SSR) and the client effective filter agree.
+  void initialEffectiveFilter;
   const router = useRouter();
 
   // ── Filter state ──────────────────────────────────────────────────────────

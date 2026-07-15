@@ -40,6 +40,42 @@ export const DEFAULT_ELECTION: ElectionType = "general";
 /** The system default frequency floor: 1+ (voted in >0 of last 4 cycles). */
 export const DEFAULT_FREQ_FLOOR = "1" as const;
 
+/**
+ * The election-appropriate frequency column for the default filter.
+ * general → GeneralFrequency, primary → PrimaryFrequency.
+ */
+export function defaultFreqColumn(election: ElectionType): string {
+  return election === "primary" ? "PrimaryFrequency" : "GeneralFrequency";
+}
+
+/**
+ * Build the INITIAL effective filter (default current filter) for a given
+ * election + optional viewer-assigned base filter. This is the same predicate
+ * the client dashboard seeds on first render, computed here so the server can
+ * pre-filter initialAnalytics / the voter list and first paint is already
+ * scoped (no flash of the whole file).
+ *
+ *   effective = AND( [assignedFloor?], <freqCol> gte 1 )
+ *
+ * Geo defaults to "all counties" on first render, so it is not included here.
+ * Returns null only when there is nothing to filter (no assigned + no floor),
+ * which does not happen with the >0 floor but is kept for safety.
+ */
+export function buildInitialEffectiveFilter(
+  election: ElectionType,
+  assigned?: AssignedFilterDef | null,
+): AssignedFilterDef | null {
+  const rules: AssignedFilterDef["rules"] = [];
+  if (assigned) rules.push(assigned);
+  rules.push({
+    key: defaultFreqColumn(election),
+    cmp: "gte",
+    value: DEFAULT_FREQ_FLOOR,
+  });
+  if (rules.length === 0) return null;
+  return { op: "and", rules };
+}
+
 // ── Client political-meta reading ────────────────────────────────────────────
 
 /**

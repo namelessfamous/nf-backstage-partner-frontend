@@ -16,6 +16,7 @@ import {
 import {
   clientDefaultElection,
   clientAssignedFilter,
+  buildInitialEffectiveFilter,
 } from "@/lib/political-defaults";
 
 export const dynamic = "force-dynamic";
@@ -95,12 +96,20 @@ export default async function PoliticalPage({
     sp.geoType === "ld" ? "ld" : sp.geoType === "sd" ? "sd" : "county";
   const geoValue: string = sp.geoValue ?? "";
 
-  // Initial analytics — whole-file, server-side (no filter on first render)
+  // Initial analytics — pre-filtered by the DEFAULT CURRENT FILTER so first
+  // paint already reflects the freq floor (General/PrimaryFrequency > 0) and
+  // any viewer-assigned base filter, matching the client dashboard's seeded
+  // state (no flash of the unfiltered whole file).
+  const initialEffectiveFilter = buildInitialEffectiveFilter(
+    electionType,
+    assignedFilter,
+  );
   const initialAnalytics = activeStore
     ? await getVoterAnalytics(activeStore.id, {
         electionType,
         weight: "county",
         top: 25,
+        filter: initialEffectiveFilter,
       })
     : null;
 
@@ -145,6 +154,7 @@ export default async function PoliticalPage({
       initialGeoValue={geoValue}
       initialElection={electionType}
       assignedFilter={assignedFilter}
+      initialEffectiveFilter={initialEffectiveFilter}
       activeStoreId={activeStore?.id ?? null}
     />
   );

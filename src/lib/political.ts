@@ -413,6 +413,12 @@ export interface VoterAnalyticsOptions {
   electionType?: "primary" | "general";
   weight?: "precinct" | "county";
   top?: number;
+  /**
+   * Optional filter_def ({op, rules}) to compute analytics over a subset only.
+   * Used to pre-filter the server-rendered initial analytics so first paint
+   * already reflects the default current filter (freq floor + assigned base).
+   */
+  filter?: unknown;
 }
 
 /**
@@ -432,6 +438,9 @@ export async function getVoterAnalytics(
     weight: opts.weight ?? "precinct",
     top: String(opts.top ?? 25),
   });
+  if (opts.filter) {
+    params.set("filter", JSON.stringify(opts.filter));
+  }
   return apiGet<VoterAnalytics>(
     `/api/v1/datastore/stores/${storeId}/analytics/?${params.toString()}`,
     { revalidate: 0 },
