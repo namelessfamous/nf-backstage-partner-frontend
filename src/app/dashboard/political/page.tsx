@@ -13,11 +13,22 @@ import { PoliticalDashboard } from "@/components/political/political-dashboard";
 import {
   segmentsForStore,
 } from "@/components/political/segment-filter-dropdown";
+import {
+  clientDefaultElection,
+  clientAssignedFilter,
+} from "@/lib/political-defaults";
 
 export const dynamic = "force-dynamic";
 
 type ElectionType = "primary" | "general";
 type GeoType = "county" | "ld" | "sd";
+
+import type { ScopeContext } from "@/lib/scope";
+
+/** Narrowing helper: the active scope's client id, or null when not a client scope. */
+function activeScopeId(ctx: ScopeContext): string | null {
+  return ctx.active.type === "client" ? ctx.active.id : null;
+}
 
 export default async function PoliticalPage({
   searchParams,
@@ -50,6 +61,17 @@ export default async function PoliticalPage({
 
   const sp = await searchParams;
 
+  // ── Client political meta: default election + viewer-assigned base filter ──
+  // The active scope is guaranteed to be a single political client here (the
+  // niche gate above returns early for partner/all scopes). Resolve that
+  // client's political meta to seed the current filter.
+  const activeClient =
+    scopeCtx.active.type === "client"
+      ? scopeCtx.clients.find((c) => c.id === activeScopeId(scopeCtx)) ?? null
+      : null;
+  const metaDefaultElection = clientDefaultElection(activeClient);
+  const assignedFilter = clientAssignedFilter(activeClient);
+
   const [grouped, politicalStores] = await Promise.all([
     getPoliticalLists(scopeCtx),
     getPoliticalStores(scopeCtx),
@@ -63,8 +85,12 @@ export default async function PoliticalPage({
   const activeStore =
     voterFiles.find((s) => s.id === sp.store) ?? voterFiles[0] ?? null;
 
+  // Default election = general unless the client political meta overrides it,
+  // unless the URL explicitly names one (user in-session override wins).
   const electionType: ElectionType =
-    sp.election === "general" ? "general" : "primary";
+    sp.election === "general" || sp.election === "primary"
+      ? sp.election
+      : metaDefaultElection;
   const geoType: GeoType =
     sp.geoType === "ld" ? "ld" : sp.geoType === "sd" ? "sd" : "county";
   const geoValue: string = sp.geoValue ?? "";
@@ -118,6 +144,7 @@ export default async function PoliticalPage({
       initialGeoType={geoType}
       initialGeoValue={geoValue}
       initialElection={electionType}
+      assignedFilter={assignedFilter}
       activeStoreId={activeStore?.id ?? null}
     />
   );

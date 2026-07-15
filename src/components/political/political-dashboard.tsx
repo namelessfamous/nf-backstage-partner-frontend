@@ -56,6 +56,10 @@ import {
 } from "@/lib/political-types";
 import type { FilterableSegment } from "@/components/political/segment-filter-dropdown";
 import { SegmentFilterDropdown } from "@/components/political/segment-filter-dropdown";
+import {
+  DEFAULT_FREQ_FLOOR,
+  type AssignedFilterDef,
+} from "@/lib/political-defaults";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -96,6 +100,20 @@ interface CurrentFilter {
   segment?: AppliedSegment | null;
 }
 
+/**
+ * Seed the default frequency floor onto the election-appropriate frequency
+ * column (redirection: default filter = GeneralFrequency > 0, or
+ * PrimaryFrequency > 0 when the election context is primary). "1" = 1+ (>0).
+ */
+function defaultFreqForElection(election: ElectionType): {
+  primaryFreq: FreqThreshold;
+  generalFreq: FreqThreshold;
+} {
+  return election === "primary"
+    ? { primaryFreq: DEFAULT_FREQ_FLOOR, generalFreq: "" }
+    : { primaryFreq: "", generalFreq: DEFAULT_FREQ_FLOOR };
+}
+
 const VIEW_HREFS: Record<string, string> = {
   walk: "/dashboard/political/walk",
   call: "/dashboard/political/call",
@@ -109,11 +127,23 @@ const VIEW_HREFS: Record<string, string> = {
 
 /**
  * Build the effective backend filter_def from the current filter state.
- * Combines geo rule + segment filter under an AND. Returns null when there
- * are no active rules (pass nothing to backend = whole file).
+ *
+ * Layering (redirection 2026-07-15): the viewer-assigned base filter is an
+ * uneditable FLOOR that always ANDs in first, then the viewer's stacked rules
+ * (geo + frequency + applied segment) AND on top to drill down within scope.
+ * The assigned filter is a base predicate, never a hard ceiling. Returns null
+ * only when there are no rules at all (pass nothing to backend = whole file).
  */
-function buildEffectiveFilter(cf: CurrentFilter): FilterDef | null {
+function buildEffectiveFilter(
+  cf: CurrentFilter,
+  assigned?: AssignedFilterDef | null,
+): FilterDef | null {
   const rules: FilterDef["rules"] = [];
+
+  // Assigned base filter (uneditable floor) ANDs in first.
+  if (assigned) {
+    rules.push(assigned as unknown as FilterDef);
+  }
 
   if (cf.geoType === "county" && cf.geoValue) {
     rules.push({ key: "CountyName", cmp: "eq", value: cf.geoValue });
@@ -163,6 +193,12 @@ export interface PoliticalDashboardProps {
   initialGeoValue: string;
   /** Initial election type from URL search params. */
   initialElection: ElectionType;
+  /**
+   * Viewer-assigned DEFAULT CURRENT FILTER for this client (uneditable floor).
+   * Null when the viewer has no assigned base filter. ANDs into every effective
+   * filter; viewers stack additional filtering on top to drill down within it.
+   */
+  assignedFilter?: AssignedFilterDef | null;
   /** Store id to use for store-switching links. */
   activeStoreId: string | null;
 }
@@ -179,19 +215,21 @@ export function PoliticalDashboard({
   initialGeoType,
   initialGeoValue,
   initialElection,
+  assignedFilter = null,
   activeStoreId,
 }: PoliticalDashboardProps) {
   const router = useRouter();
 
   // ── Filter state ──────────────────────────────────────────────────────────
-  const [currentFilter, setCurrentFilter] = useState<CurrentFilter>({
+  // Seed the default frequency floor onto the election-appropriate column
+  // (default filter = General/PrimaryFrequency > 0 per the current election).
+  const [currentFilter, setCurrentFilter] = useState<CurrentFilter>(() => ({
     geoType: initialGeoType,
     geoValue: initialGeoValue,
     election: initialElection,
-    primaryFreq: "",
-    generalFreq: "",
+    ...defaultFreqForElection(initialElection),
     segment: null,
-  });
+  }));
 
   // ── Analytics state (client-side, filter-aware) ───────────────────────────
   const [analytics, setAnalytics] = useState<VoterAnalytics | null>(
@@ -201,7 +239,7 @@ export function PoliticalDashboard({
   const fetchControllerRef = useRef<AbortController | null>(null);
 
   // ── Derived effective filter_def ──────────────────────────────────────────
-  const effectiveFilter = buildEffectiveFilter(currentFilter);
+  const effectiveFilter = buildEffectiveFilter(currentFilter, assignedFilter);
 
   // Fetch analytics whenever filter or election changes
   const fetchAnalytics = useCallback(
@@ -212,7 +250,7 @@ export function PoliticalDashboard({
 
       setAnalyticsLoading(true);
       try {
-        const eff = buildEffectiveFilter(cf);
+        const eff = buildEffectiveFilter(cf, assignedFilter);
         const params = new URLSearchParams({
           election_type: cf.election,
           weight: "county",
@@ -459,6 +497,15 @@ export function PoliticalDashboard({
       {/* ── 4. FILTERS BAR ─────────────────────────────────────────────── */}
       {voterFiles.length > 0 && (
         <div className="rounded-3xl bg-[var(--brand-surface-strong)]/40 border border-black/5 p-4">
+          {assignedFilter && (
+            <div className="mb-3 flex items-center gap-1.5 text-[0.65rem] font-medium text-[var(--brand-muted)]">
+              <Shield className="h-3 w-3 text-[var(--brand-primary)]" aria-hidden="true" />
+              <span>
+                Assigned scope active — your view is scoped to an assigned base
+                filter. You can narrow further below, but not beyond it.
+              </span>
+            </div>
+          )}
           <div className="flex flex-wrap items-end gap-4">
             {/* Voter file picker (only when multiple files) */}
             {voterFiles.length > 1 && (
@@ -633,7 +680,24 @@ export function PoliticalDashboard({
                   { value: "general", label: "General" },
                 ]}
                 onSelect={(val) =>
-                  setCurrentFilter((prev) => ({ ...prev, election: val }))
+                  setCurrentFilter((prev) => {
+                    // Re-seed the default frequency floor onto the newly
+                    // selected election's column ONLY when the user hasn't
+                    // moved off the default on either column. Preserve any
+                    // manual threshold the viewer has set.
+                    const onDefaults =
+                      (prev.election === "general" &&
+                        prev.generalFreq === DEFAULT_FREQ_FLOOR &&
+                        prev.primaryFreq === "") ||
+                      (prev.election === "primary" &&
+                        prev.primaryFreq === DEFAULT_FREQ_FLOOR &&
+                        prev.generalFreq === "");
+                    return {
+                      ...prev,
+                      election: val,
+                      ...(onDefaults ? defaultFreqForElection(val) : {}),
+                    };
+                  })
                 }
               />
             </div>
